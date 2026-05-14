@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#0f0f0f">
 <title>BS·pic·upload</title>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-authentication-library/2.38.3/msal-browser.min.js"></script>
 <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
 
 <style>
@@ -38,7 +39,6 @@ body {
   overflow-x: hidden;
 }
 
-/* ─── SCREENS ─── */
 .screen {
   display: none;
   flex-direction: column;
@@ -47,7 +47,6 @@ body {
 }
 .screen.active { display: flex; }
 
-/* ─── TOP BAR ─── */
 .topbar {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -59,523 +58,137 @@ body {
   align-items: center;
   gap: 12px;
 }
-
-.topbar-logo {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--accent);
-}
-
-.topbar-title {
-  flex: 1;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.topbar-back {
-  background: none;
-  border: none;
-  color: var(--accent);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 4px 0;
-  display: none;
-}
+.topbar-logo { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; color: var(--accent); }
+.topbar-title { flex: 1; font-size: 13px; color: var(--muted); }
+.topbar-back { background: none; border: none; color: var(--accent); font-size: 13px; cursor: pointer; padding: 4px 0; display: none; }
 .topbar-back.visible { display: block; }
 
-/* ─── STEP INDICATOR ─── */
-.steps {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 28px;
-}
-.step-dot {
-  height: 3px;
-  border-radius: 2px;
-  flex: 1;
-  background: var(--surface2);
-  transition: background 0.3s;
-}
+.steps { display: flex; gap: 6px; margin-bottom: 28px; }
+.step-dot { height: 3px; border-radius: 2px; flex: 1; background: var(--surface2); transition: background 0.3s; }
 .step-dot.done { background: var(--accent); }
 .step-dot.active { background: var(--accent); opacity: 0.6; }
 
-/* ─── LOGIN SCREEN ─── */
-#screen-login {
-  justify-content: center;
-  align-items: center;
-  gap: 0;
-  padding-top: 0;
-}
-
-.login-box {
-  width: 100%;
-  max-width: 340px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-}
-
-.login-logo {
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-
-.login-title {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: var(--text);
-  margin-bottom: 6px;
-  text-align: center;
-}
+/* LOGIN */
+#screen-login { justify-content: center; align-items: center; padding-top: 0; }
+.login-box { width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: center; }
+.login-logo { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.login-title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); margin-bottom: 6px; text-align: center; }
 .login-title span { color: var(--accent); }
-
-.login-sub {
-  font-size: 13px;
-  color: var(--muted);
-  text-align: center;
-  margin-bottom: 36px;
-  line-height: 1.5;
-}
+.login-sub { font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 36px; line-height: 1.5; }
 
 .btn-login {
-  width: 100%;
-  padding: 16px;
-  background: var(--accent);
-  color: #0f0f0f;
-  border: none;
-  border-radius: var(--r);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+  width: 100%; padding: 16px;
+  background: var(--accent); color: #0f0f0f;
+  border: none; border-radius: var(--r);
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
   transition: opacity 0.2s, transform 0.15s;
 }
 .btn-login:active { opacity: 0.85; transform: scale(0.98); }
+.btn-login:disabled { opacity: 0.5; }
 
-.ms-icon {
-  width: 18px; height: 18px;
-  display: inline-flex;
-  flex-shrink: 0;
-}
+.ms-icon { width: 18px; height: 18px; display: inline-flex; flex-shrink: 0; }
+.login-hint { margin-top: 16px; font-size: 11px; color: var(--muted); text-align: center; line-height: 1.6; }
 
-.login-hint {
-  margin-top: 16px;
-  font-size: 11px;
-  color: var(--muted);
-  text-align: center;
-  line-height: 1.6;
+.login-error {
+  margin-top: 16px; padding: 12px 16px;
+  background: rgba(255,92,92,0.1); border: 1px solid rgba(255,92,92,0.3);
+  border-radius: var(--r); font-size: 13px; color: #ff8080;
+  text-align: center; line-height: 1.5; display: none;
 }
+.login-error.visible { display: block; }
 
-/* ─── HEADINGS ─── */
-.screen-heading {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.4px;
-  margin-bottom: 6px;
-  line-height: 1.15;
-}
-.screen-sub {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 24px;
-  line-height: 1.5;
-}
+/* HEADINGS */
+.screen-heading { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 6px; line-height: 1.15; }
+.screen-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
 
-/* ─── SCAN SCREEN ─── */
+/* SCAN */
 .scan-area {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: var(--r);
-  overflow: hidden;
-  background: #000;
-  margin-bottom: 20px;
+  position: relative; width: 100%; aspect-ratio: 1;
+  border-radius: var(--r); overflow: hidden; background: #000; margin-bottom: 20px;
 }
+#scan-video { width: 100%; height: 100%; object-fit: cover; }
+.scan-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.scan-frame { width: 65%; aspect-ratio: 1; position: relative; }
+.scan-corner { position: absolute; width: 22px; height: 22px; border-color: var(--accent); border-style: solid; border-width: 0; }
+.scan-corner.tl { top:0;left:0;border-top-width:3px;border-left-width:3px;border-radius:4px 0 0 0; }
+.scan-corner.tr { top:0;right:0;border-top-width:3px;border-right-width:3px;border-radius:0 4px 0 0; }
+.scan-corner.bl { bottom:0;left:0;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 4px; }
+.scan-corner.br { bottom:0;right:0;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 4px 0; }
+.scan-line { position: absolute; left:10%;right:10%; height:2px; background: linear-gradient(90deg,transparent,var(--accent),transparent); top:0; animation: scanline 2s ease-in-out infinite; }
+@keyframes scanline { 0%,100%{top:10%;opacity:0.8} 50%{top:90%;opacity:1} }
 
-#scan-video {
-  width: 100%; height: 100%;
-  object-fit: cover;
-}
-
-.scan-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.scan-frame {
-  width: 65%;
-  aspect-ratio: 1;
-  position: relative;
-}
-
-.scan-corner {
-  position: absolute;
-  width: 22px; height: 22px;
-  border-color: var(--accent);
-  border-style: solid;
-  border-width: 0;
-}
-.scan-corner.tl { top: 0; left: 0; border-top-width: 3px; border-left-width: 3px; border-radius: 4px 0 0 0; }
-.scan-corner.tr { top: 0; right: 0; border-top-width: 3px; border-right-width: 3px; border-radius: 0 4px 0 0; }
-.scan-corner.bl { bottom: 0; left: 0; border-bottom-width: 3px; border-left-width: 3px; border-radius: 0 0 0 4px; }
-.scan-corner.br { bottom: 0; right: 0; border-bottom-width: 3px; border-right-width: 3px; border-radius: 0 0 4px 0; }
-
-.scan-line {
-  position: absolute;
-  left: 10%; right: 10%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  top: 0;
-  animation: scanline 2s ease-in-out infinite;
-}
-@keyframes scanline {
-  0%, 100% { top: 10%; opacity: 0.8; }
-  50% { top: 90%; opacity: 1; }
-}
-
-.scan-result-badge {
-  display: none;
-  align-items: center;
-  gap: 10px;
-  background: var(--accent-dim);
-  border: 1px solid var(--accent);
-  border-radius: var(--r);
-  padding: 14px 16px;
-  margin-bottom: 16px;
-}
+.scan-result-badge { display:none; align-items:center; gap:10px; background:var(--accent-dim); border:1px solid var(--accent); border-radius:var(--r); padding:14px 16px; margin-bottom:16px; }
 .scan-result-badge.visible { display: flex; }
+.scan-result-label { font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted); margin-bottom:2px; }
+.scan-result-value { font-size:18px; font-weight:700; color:var(--accent); letter-spacing:-0.3px; }
 
-.scan-result-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--muted);
-  margin-bottom: 2px;
-}
-.scan-result-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: -0.3px;
-}
+.btn-manual { background:none; border:0.5px solid var(--border2); border-radius:var(--r); padding:14px; color:var(--muted); font-size:14px; cursor:pointer; width:100%; margin-bottom:12px; transition:all 0.2s; }
+.btn-manual:active { background:var(--surface2); color:var(--text); }
+.input-manual { display:none; width:100%; background:var(--surface); border:0.5px solid var(--border2); border-radius:var(--r); padding:14px 16px; color:var(--text); font-size:16px; outline:none; margin-bottom:12px; letter-spacing:0.04em; }
+.input-manual:focus { border-color:var(--accent); }
+.input-manual.visible { display:block; }
 
-.btn-manual {
-  background: none;
-  border: 0.5px solid var(--border2);
-  border-radius: var(--r);
-  padding: 14px;
-  color: var(--muted);
-  font-size: 14px;
-  cursor: pointer;
-  width: 100%;
-  margin-bottom: 12px;
-  transition: all 0.2s;
-}
-.btn-manual:active { background: var(--surface2); color: var(--text); }
+/* PHOTOS */
+.auftrag-pill { display:inline-flex; align-items:center; gap:8px; background:var(--accent-dim); border:1px solid rgba(212,242,58,0.3); border-radius:100px; padding:6px 14px; font-size:13px; font-weight:600; color:var(--accent); margin-bottom:20px; letter-spacing:0.04em; }
+.photo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; min-height:100px; }
+.photo-thumb { position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden; background:var(--surface2); }
+.photo-thumb img { width:100%;height:100%;object-fit:cover;display:block; }
+.photo-remove { position:absolute; top:4px;right:4px; width:22px;height:22px; border-radius:50%; background:rgba(0,0,0,0.7); border:none; color:#fff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.btn-add-photo { aspect-ratio:1; border-radius:10px; border:1.5px dashed var(--border2); background:var(--surface); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; color:var(--muted); font-size:11px; transition:all 0.2s; }
+.btn-add-photo:active { background:var(--surface2); border-color:var(--accent); }
+.btn-add-photo-icon { font-size:24px; }
+.photo-count { font-size:12px; color:var(--muted); margin-bottom:20px; }
+.photo-count span { color:var(--accent); font-weight:600; }
+#photo-input { display:none; }
 
-.input-manual {
-  display: none;
-  width: 100%;
-  background: var(--surface);
-  border: 0.5px solid var(--border2);
-  border-radius: var(--r);
-  padding: 14px 16px;
-  color: var(--text);
-  font-size: 16px;
-  outline: none;
-  margin-bottom: 12px;
-  letter-spacing: 0.04em;
-}
-.input-manual:focus { border-color: var(--accent); }
-.input-manual.visible { display: block; }
+/* BUTTONS */
+.btn-primary { width:100%; padding:17px; background:var(--accent); color:#0f0f0f; border:none; border-radius:var(--r); font-size:16px; font-weight:700; cursor:pointer; transition:opacity 0.2s,transform 0.15s; display:flex; align-items:center; justify-content:center; gap:8px; }
+.btn-primary:active { opacity:0.85; transform:scale(0.98); }
+.btn-primary:disabled { opacity:0.3; cursor:not-allowed; }
+.btn-secondary { width:100%; padding:15px; background:none; color:var(--text); border:0.5px solid var(--border2); border-radius:var(--r); font-size:15px; font-weight:500; cursor:pointer; margin-top:10px; transition:background 0.2s; }
+.btn-secondary:active { background:var(--surface2); }
 
-/* ─── PHOTO SCREEN ─── */
-.auftrag-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--accent-dim);
-  border: 1px solid rgba(212,242,58,0.3);
-  border-radius: 100px;
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent);
-  margin-bottom: 20px;
-  letter-spacing: 0.04em;
-}
+/* UPLOAD */
+.upload-status { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding-bottom:40px; }
+.upload-icon-wrap { width:80px;height:80px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:36px; margin-bottom:24px; position:relative; }
+.upload-ring { position:absolute; inset:-6px; border-radius:50%; border:3px solid var(--surface2); border-top-color:var(--accent); animation:spin 1s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.upload-title { font-size:20px; font-weight:700; margin-bottom:8px; }
+.upload-desc { font-size:14px; color:var(--muted); line-height:1.5; max-width:280px; margin-bottom:24px; }
+.upload-progress { width:100%; max-width:280px; height:4px; background:var(--surface2); border-radius:2px; overflow:hidden; margin-bottom:8px; }
+.upload-progress-bar { height:100%; background:var(--accent); border-radius:2px; width:0%; transition:width 0.4s ease; }
+.upload-progress-label { font-size:12px; color:var(--muted); }
 
-.photo-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 16px;
-  min-height: 100px;
-}
+/* SUCCESS */
+.success-wrap { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+.success-icon { width:80px;height:80px; border-radius:50%; background:var(--accent-dim); border:2px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:34px; margin-bottom:24px; }
+.success-folder { background:var(--surface); border:0.5px solid var(--border2); border-radius:var(--r); padding:14px 18px; margin:20px 0 32px; width:100%; max-width:300px; text-align:left; }
+.success-folder-label { font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:6px; }
+.success-folder-path { font-size:14px; font-weight:600; color:var(--accent); word-break:break-all; }
+.success-folder-count { font-size:12px; color:var(--muted); margin-top:4px; }
 
-.photo-thumb {
-  position: relative;
-  aspect-ratio: 1;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--surface2);
-}
-.photo-thumb img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.photo-remove {
-  position: absolute;
-  top: 4px; right: 4px;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.7);
-  border: none;
-  color: #fff;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-add-photo {
-  aspect-ratio: 1;
-  border-radius: 10px;
-  border: 1.5px dashed var(--border2);
-  background: var(--surface);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 11px;
-  transition: all 0.2s;
-}
-.btn-add-photo:active { background: var(--surface2); border-color: var(--accent); }
-.btn-add-photo-icon { font-size: 24px; }
-
-.photo-count {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 20px;
-}
-.photo-count span { color: var(--accent); font-weight: 600; }
-
-#photo-input { display: none; }
-
-/* ─── PRIMARY BUTTON ─── */
-.btn-primary {
-  width: 100%;
-  padding: 17px;
-  background: var(--accent);
-  color: #0f0f0f;
-  border: none;
-  border-radius: var(--r);
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-.btn-primary:active { opacity: 0.85; transform: scale(0.98); }
-.btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
-
-.btn-secondary {
-  width: 100%;
-  padding: 15px;
-  background: none;
-  color: var(--text);
-  border: 0.5px solid var(--border2);
-  border-radius: var(--r);
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: background 0.2s;
-}
-.btn-secondary:active { background: var(--surface2); }
-
-/* ─── UPLOAD SCREEN ─── */
-.upload-status {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 0;
-  padding-bottom: 40px;
-}
-
-.upload-icon-wrap {
-  width: 80px; height: 80px;
-  border-radius: 50%;
-  background: var(--surface2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36px;
-  margin-bottom: 24px;
-  position: relative;
-}
-
-.upload-ring {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  border: 3px solid var(--surface2);
-  border-top-color: var(--accent);
-  animation: spin 1s linear infinite;
-  display: none;
-}
-.uploading .upload-ring { display: block; }
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.upload-title {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-.upload-desc {
-  font-size: 14px;
-  color: var(--muted);
-  line-height: 1.5;
-  max-width: 280px;
-  margin-bottom: 24px;
-}
-
-.upload-progress {
-  width: 100%;
-  max-width: 280px;
-  height: 4px;
-  background: var(--surface2);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-.upload-progress-bar {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
-  width: 0%;
-  transition: width 0.4s ease;
-}
-.upload-progress-label {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* ─── SUCCESS SCREEN ─── */
-.success-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 0;
-}
-
-.success-icon {
-  width: 80px; height: 80px;
-  border-radius: 50%;
-  background: var(--accent-dim);
-  border: 2px solid var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 34px;
-  margin-bottom: 24px;
-}
-
-.success-folder {
-  background: var(--surface);
-  border: 0.5px solid var(--border2);
-  border-radius: var(--r);
-  padding: 14px 18px;
-  margin: 20px 0 32px;
-  width: 100%;
-  max-width: 300px;
-  text-align: left;
-}
-.success-folder-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-.success-folder-path {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent);
-  word-break: break-all;
-}
-.success-folder-count {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-
-/* ─── TOAST ─── */
-.toast {
-  position: fixed;
-  bottom: calc(var(--safe-bottom) + 20px);
-  left: 20px; right: 20px;
-  background: var(--danger);
-  color: #fff;
-  padding: 14px 18px;
-  border-radius: var(--r);
-  font-size: 14px;
-  font-weight: 500;
-  z-index: 9999;
-  transform: translateY(120%);
-  transition: transform 0.3s cubic-bezier(0.34,1.4,0.64,1);
-  text-align: center;
-}
-.toast.show { transform: translateY(0); }
-.toast.success { background: #1a3a0a; border: 1px solid var(--accent); color: var(--accent); }
-
+/* TOAST */
+.toast { position:fixed; bottom:calc(var(--safe-bottom) + 20px); left:20px;right:20px; background:var(--danger); color:#fff; padding:14px 18px; border-radius:var(--r); font-size:14px; font-weight:500; z-index:9999; transform:translateY(120%); transition:transform 0.3s cubic-bezier(0.34,1.4,0.64,1); text-align:center; }
+.toast.show { transform:translateY(0); }
+.toast.success { background:#1a3a0a; border:1px solid var(--accent); color:var(--accent); }
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
 <div class="topbar">
   <button class="topbar-back" id="btn-back" onclick="goBack()">← Zurück</button>
   <span class="topbar-logo">BS·pic·upload</span>
   <span class="topbar-title" id="topbar-title"></span>
 </div>
 
-<!-- SCREEN: LOGIN -->
+<!-- LOGIN -->
 <div class="screen active" id="screen-login">
   <div class="login-box">
     <p class="login-logo">best·systems GmbH</p>
     <h1 class="login-title">Auftrags<span>·</span>Fotos</h1>
     <p class="login-sub">Scanne einen Auftrag und lade<br>Fotos direkt auf OneDrive hoch.</p>
-    <button class="btn-login" onclick="doLogin()">
+    <button class="btn-login" id="btn-login" onclick="doLogin()">
       <svg class="ms-icon" viewBox="0 0 21 21" fill="none">
         <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
         <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
@@ -584,20 +197,20 @@ body {
       </svg>
       Mit Microsoft anmelden
     </button>
+    <div class="login-error" id="login-error"></div>
     <p class="login-hint">Einmalige Anmeldung mit deinem<br>Best Systems Microsoft-Konto</p>
   </div>
 </div>
 
-<!-- SCREEN: SCAN -->
+<!-- SCAN -->
 <div class="screen" id="screen-scan">
   <div class="steps">
-    <div class="step-dot done" id="dot1"></div>
-    <div class="step-dot active" id="dot2"></div>
-    <div class="step-dot" id="dot3"></div>
+    <div class="step-dot done"></div>
+    <div class="step-dot active"></div>
+    <div class="step-dot"></div>
   </div>
   <h2 class="screen-heading">Auftrag scannen</h2>
   <p class="screen-sub">Halte die Kamera auf den QR- oder Barcode des Auftrags.</p>
-
   <div class="scan-area">
     <video id="scan-video" autoplay playsinline muted></video>
     <div class="scan-overlay">
@@ -610,23 +223,18 @@ body {
       </div>
     </div>
   </div>
-
   <div class="scan-result-badge" id="scan-result-badge">
     <div>
       <div class="scan-result-label">Auftragsnummer</div>
       <div class="scan-result-value" id="scan-result-value">—</div>
     </div>
   </div>
-
   <button class="btn-manual" id="btn-manual-toggle" onclick="toggleManual()">✏️ Manuell eingeben</button>
   <input class="input-manual" id="input-manual" type="text" placeholder="z.B. AU-2024-0312" autocapitalize="characters" oninput="onManualInput(this.value)">
-
-  <button class="btn-primary" id="btn-to-photos" onclick="goToPhotos()" disabled>
-    Fotos aufnehmen →
-  </button>
+  <button class="btn-primary" id="btn-to-photos" onclick="goToPhotos()" disabled>Fotos aufnehmen →</button>
 </div>
 
-<!-- SCREEN: PHOTOS -->
+<!-- PHOTOS -->
 <div class="screen" id="screen-photos">
   <div class="steps">
     <div class="step-dot done"></div>
@@ -634,11 +242,7 @@ body {
     <div class="step-dot active"></div>
   </div>
   <h2 class="screen-heading">Fotos aufnehmen</h2>
-
-  <div class="auftrag-pill" id="photo-auftrag-pill">
-    📋 <span id="photo-auftrag-label">—</span>
-  </div>
-
+  <div class="auftrag-pill">📋 <span id="photo-auftrag-label">—</span></div>
   <div class="photo-grid" id="photo-grid">
     <label class="btn-add-photo" for="photo-input">
       <span class="btn-add-photo-icon">📷</span>
@@ -646,34 +250,28 @@ body {
     </label>
   </div>
   <input type="file" id="photo-input" accept="image/*" capture="environment" multiple onchange="addPhotos(this)">
-
   <p class="photo-count"><span id="photo-count-val">0</span> Foto(s) ausgewählt</p>
-
-  <div style="margin-top: auto; padding-top: 16px;">
-    <button class="btn-primary" id="btn-upload" onclick="startUpload()" disabled>
-      ☁️ Auf OneDrive hochladen
-    </button>
+  <div style="margin-top:auto;padding-top:16px;">
+    <button class="btn-primary" id="btn-upload" onclick="startUpload()" disabled>☁️ Auf OneDrive hochladen</button>
     <button class="btn-secondary" onclick="goBack()">Zurück</button>
   </div>
 </div>
 
-<!-- SCREEN: UPLOAD -->
+<!-- UPLOAD -->
 <div class="screen" id="screen-upload">
-  <div class="upload-status" id="upload-status-wrap">
-    <div class="upload-icon-wrap uploading">
+  <div class="upload-status">
+    <div class="upload-icon-wrap">
       <div class="upload-ring"></div>
       <span>☁️</span>
     </div>
-    <h2 class="upload-title" id="upload-title">Wird hochgeladen…</h2>
-    <p class="upload-desc" id="upload-desc">Fotos werden auf OneDrive übertragen. Bitte warten.</p>
-    <div class="upload-progress">
-      <div class="upload-progress-bar" id="upload-progress-bar"></div>
-    </div>
+    <h2 class="upload-title">Wird hochgeladen…</h2>
+    <p class="upload-desc" id="upload-desc">Fotos werden auf OneDrive übertragen.</p>
+    <div class="upload-progress"><div class="upload-progress-bar" id="upload-progress-bar"></div></div>
     <p class="upload-progress-label" id="upload-progress-label">0 von 0</p>
   </div>
 </div>
 
-<!-- SCREEN: SUCCESS -->
+<!-- SUCCESS -->
 <div class="screen" id="screen-success">
   <div class="success-wrap">
     <div class="success-icon">✅</div>
@@ -684,68 +282,117 @@ body {
       <div class="success-folder-path" id="success-path">—</div>
       <div class="success-folder-count" id="success-count">—</div>
     </div>
-    <button class="btn-primary" onclick="resetApp()" style="max-width:300px;">
-      Neuer Auftrag
-    </button>
+    <button class="btn-primary" onclick="resetApp()" style="max-width:300px;">Neuer Auftrag</button>
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ─── CONFIG ───
 const CLIENT_ID = '180e1fc6-2c2b-4a77-82e8-e3dbcd219491';
-const REDIRECT_URI = window.location.origin + window.location.pathname;
-const SCOPES = 'Files.ReadWrite User.Read';
+const TENANT_ID = '175d1508-8739-4676-bb66-98aa62745feb';
 const BASE_FOLDER = 'Auftraege-BS-pic-upload';
 
-// ─── STATE ───
+const msalConfig = {
+  auth: {
+    clientId: CLIENT_ID,
+    authority: `https://login.microsoftonline.com/${TENANT_ID}`,
+    redirectUri: window.location.origin + window.location.pathname,
+    navigateToLoginRequestUrl: true
+  },
+  cache: {
+    cacheLocation: 'localStorage',
+    storeAuthStateInCookie: true
+  }
+};
+
+const loginRequest = {
+  scopes: ['Files.ReadWrite', 'User.Read']
+};
+
+let msalInstance = null;
 let accessToken = null;
 let auftragNummer = null;
 let photos = [];
 let scanner = null;
 let scanStream = null;
 let manualVisible = false;
-let history = ['login'];
+let navHistory = ['login'];
 
-// ─── SCREEN NAVIGATION ───
+async function initMsal() {
+  try {
+    msalInstance = new msal.PublicClientApplication(msalConfig);
+    await msalInstance.initialize();
+
+    const response = await msalInstance.handleRedirectPromise();
+    if (response && response.accessToken) {
+      accessToken = response.accessToken;
+      afterLogin();
+      return;
+    }
+
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      try {
+        const silentResult = await msalInstance.acquireTokenSilent({
+          ...loginRequest,
+          account: accounts[0]
+        });
+        accessToken = silentResult.accessToken;
+        afterLogin();
+      } catch (e) {
+        showScreen('login');
+      }
+    } else {
+      showScreen('login');
+    }
+  } catch (e) {
+    console.error('MSAL init error:', e);
+    showScreen('login');
+  }
+}
+
+async function doLogin() {
+  const btn = document.getElementById('btn-login');
+  const errEl = document.getElementById('login-error');
+  btn.disabled = true;
+  btn.textContent = 'Wird angemeldet…';
+  errEl.classList.remove('visible');
+  try {
+    await msalInstance.loginRedirect(loginRequest);
+  } catch (e) {
+    btn.disabled = false;
+    btn.innerHTML = `<svg class="ms-icon" viewBox="0 0 21 21" fill="none"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg> Mit Microsoft anmelden`;
+    errEl.textContent = 'Anmeldung fehlgeschlagen: ' + (e.message || 'Unbekannter Fehler');
+    errEl.classList.add('visible');
+  }
+}
+
+function afterLogin() {
+  navHistory = ['login', 'scan'];
+  startScanner();
+  showScreen('scan');
+}
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + id).classList.add('active');
   const back = document.getElementById('btn-back');
   const title = document.getElementById('topbar-title');
-  if (id === 'login') {
-    back.classList.remove('visible');
-    title.textContent = '';
-  } else if (id === 'scan') {
-    back.classList.remove('visible');
-    title.textContent = 'Schritt 1/3';
-  } else if (id === 'photos') {
-    back.classList.add('visible');
-    title.textContent = 'Schritt 2/3';
-  } else if (id === 'upload') {
-    back.classList.remove('visible');
-    title.textContent = 'Upload läuft…';
-  } else if (id === 'success') {
-    back.classList.remove('visible');
-    title.textContent = '';
-  }
+  const map = { login: ['', ''], scan: ['Schritt 1/3', false], photos: ['Schritt 2/3', true], upload: ['Upload…', false], success: ['', false] };
+  const [t, showBack] = map[id] || ['', false];
+  title.textContent = t;
+  showBack ? back.classList.add('visible') : back.classList.remove('visible');
 }
 
+function navigate(id) { navHistory.push(id); showScreen(id); }
 function goBack() {
-  history.pop();
-  const prev = history[history.length - 1] || 'login';
+  navHistory.pop();
+  const prev = navHistory[navHistory.length - 1] || 'login';
   if (prev === 'scan') startScanner();
   showScreen(prev);
 }
 
-function navigate(id) {
-  history.push(id);
-  showScreen(id);
-}
-
-// ─── TOAST ───
 function showToast(msg, type = 'error') {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -753,60 +400,20 @@ function showToast(msg, type = 'error') {
   setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-// ─── AUTH ───
-function doLogin() {
-  const params = new URLSearchParams({
-    client_id: CLIENT_ID,
-    response_type: 'token',
-    redirect_uri: REDIRECT_URI,
-    scope: SCOPES,
-    response_mode: 'fragment',
-    prompt: 'select_account'
-  });
-  window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`;
-}
-
-function checkAuthCallback() {
-  const hash = window.location.hash.substring(1);
-  if (!hash) return;
-  const params = new URLSearchParams(hash);
-  const token = params.get('access_token');
-  if (token) {
-    accessToken = token;
-    history.replaceState(null, '', window.location.pathname);
-    history = ['login', 'scan'];
-    startScanner();
-    showScreen('scan');
-  }
-}
-
-// ─── SCANNER ───
 async function startScanner() {
   try {
-    if (scanStream) {
-      scanStream.getTracks().forEach(t => t.stop());
-      scanStream = null;
-    }
+    if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
     const video = document.getElementById('scan-video');
-    scanStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
-    });
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } } });
     video.srcObject = scanStream;
     await video.play();
-
     if (window.ZXing) {
-      const hints = new Map();
-      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-      const reader = new ZXing.BrowserMultiFormatReader(hints);
+      const reader = new ZXing.BrowserMultiFormatReader();
       scanner = reader;
-      reader.decodeFromVideoElement(video, (result, err) => {
-        if (result) {
-          setAuftrag(result.getText());
-        }
-      });
+      reader.decodeFromVideoElement(video, (result) => { if (result) setAuftrag(result.getText()); });
     }
   } catch (e) {
-    showToast('Kamerazugriff nicht möglich. Bitte Berechtigung erteilen.');
+    showToast('Kamerazugriff nicht möglich.');
   }
 }
 
@@ -827,15 +434,12 @@ function setAuftrag(value) {
 
 function toggleManual() {
   manualVisible = !manualVisible;
-  const inp = document.getElementById('input-manual');
-  inp.classList.toggle('visible', manualVisible);
+  document.getElementById('input-manual').classList.toggle('visible', manualVisible);
   document.getElementById('btn-manual-toggle').textContent = manualVisible ? '❌ Abbrechen' : '✏️ Manuell eingeben';
-  if (manualVisible) inp.focus();
+  if (manualVisible) document.getElementById('input-manual').focus();
 }
 
-function onManualInput(val) {
-  if (val.trim().length >= 2) setAuftrag(val);
-}
+function onManualInput(val) { if (val.trim().length >= 2) setAuftrag(val); }
 
 function goToPhotos() {
   if (!auftragNummer) return;
@@ -844,24 +448,16 @@ function goToPhotos() {
   navigate('photos');
 }
 
-// ─── PHOTOS ───
 function addPhotos(input) {
-  const files = Array.from(input.files);
-  files.forEach(file => {
+  Array.from(input.files).forEach(file => {
     const reader = new FileReader();
-    reader.onload = e => {
-      photos.push({ file, dataUrl: e.target.result });
-      renderPhotoGrid();
-    };
+    reader.onload = e => { photos.push({ file, dataUrl: e.target.result }); renderPhotoGrid(); };
     reader.readAsDataURL(file);
   });
   input.value = '';
 }
 
-function removePhoto(idx) {
-  photos.splice(idx, 1);
-  renderPhotoGrid();
-}
+function removePhoto(idx) { photos.splice(idx, 1); renderPhotoGrid(); }
 
 function renderPhotoGrid() {
   const grid = document.getElementById('photo-grid');
@@ -869,8 +465,7 @@ function renderPhotoGrid() {
   photos.forEach((p, i) => {
     const div = document.createElement('div');
     div.className = 'photo-thumb';
-    div.innerHTML = `<img src="${p.dataUrl}" alt="Foto ${i+1}">
-      <button class="photo-remove" onclick="removePhoto(${i})">×</button>`;
+    div.innerHTML = `<img src="${p.dataUrl}" alt="Foto ${i+1}"><button class="photo-remove" onclick="removePhoto(${i})">×</button>`;
     grid.appendChild(div);
   });
   const addBtn = document.createElement('label');
@@ -878,47 +473,45 @@ function renderPhotoGrid() {
   addBtn.htmlFor = 'photo-input';
   addBtn.innerHTML = `<span class="btn-add-photo-icon">📷</span><span>Hinzufügen</span>`;
   grid.appendChild(addBtn);
-
   document.getElementById('photo-count-val').textContent = photos.length;
   document.getElementById('btn-upload').disabled = photos.length === 0;
 }
 
-// ─── UPLOAD ───
-async function startUpload() {
-  if (!photos.length || !accessToken) return;
-  navigate('upload');
+async function getValidToken() {
+  const accounts = msalInstance.getAllAccounts();
+  if (!accounts.length) throw new Error('Nicht angemeldet');
+  const result = await msalInstance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
+  return result.accessToken;
+}
 
+async function startUpload() {
+  if (!photos.length) return;
+  navigate('upload');
   const folderPath = `${BASE_FOLDER}/${auftragNummer}`;
   const total = photos.length;
   let done = 0;
-
   const bar = document.getElementById('upload-progress-bar');
   const label = document.getElementById('upload-progress-label');
-  const desc = document.getElementById('upload-desc');
-
-  desc.textContent = `Ordner: ${folderPath}`;
+  document.getElementById('upload-desc').textContent = `Ordner: ${folderPath}`;
   label.textContent = `0 von ${total}`;
-
   try {
+    const token = await getValidToken();
+    accessToken = token;
     await ensureFolder(folderPath);
-
     for (let i = 0; i < photos.length; i++) {
       const p = photos[i];
       const ext = p.file.name.split('.').pop() || 'jpg';
       const filename = `foto_${String(i+1).padStart(3,'0')}_${Date.now()}.${ext}`;
       await uploadFile(folderPath, filename, p.file);
       done++;
-      const pct = Math.round((done / total) * 100);
-      bar.style.width = pct + '%';
+      bar.style.width = Math.round((done / total) * 100) + '%';
       label.textContent = `${done} von ${total}`;
     }
-
     document.getElementById('success-path').textContent = `OneDrive / ${folderPath}`;
     document.getElementById('success-count').textContent = `${total} Foto(s) hochgeladen`;
     navigate('success');
-
   } catch (e) {
-    showToast('Upload fehlgeschlagen: ' + (e.message || 'Unbekannter Fehler'));
+    showToast('Upload fehlgeschlagen: ' + (e.message || 'Fehler'));
     navigate('photos');
   }
 }
@@ -927,13 +520,14 @@ async function ensureFolder(path) {
   const parts = path.split('/');
   let current = '';
   for (const part of parts) {
-    const parentPath = current ? `items/root:/${current}:/children` : 'items/root/children';
     current = current ? `${current}/${part}` : part;
     const checkUrl = `https://graph.microsoft.com/v1.0/me/drive/root:/${current}`;
     const check = await fetch(checkUrl, { headers: { Authorization: 'Bearer ' + accessToken } });
     if (check.status === 404) {
-      const parentUrl = `https://graph.microsoft.com/v1.0/me/drive/${parentPath}`;
-      await fetch(parentUrl, {
+      const parentParts = current.split('/');
+      parentParts.pop();
+      const parentPath = parentParts.length ? `root:/${parentParts.join('/')}:/children` : 'root/children';
+      await fetch(`https://graph.microsoft.com/v1.0/me/drive/${parentPath}`, {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: part, folder: {}, '@microsoft.graph.conflictBehavior': 'rename' })
@@ -946,22 +540,14 @@ async function uploadFile(folderPath, filename, file) {
   const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${folderPath}/${filename}:/content`;
   const resp = await fetch(url, {
     method: 'PUT',
-    headers: {
-      Authorization: 'Bearer ' + accessToken,
-      'Content-Type': file.type || 'image/jpeg'
-    },
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': file.type || 'image/jpeg' },
     body: file
   });
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error(err.error?.message || resp.statusText);
-  }
+  if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.error?.message || resp.statusText); }
 }
 
-// ─── RESET ───
 function resetApp() {
-  auftragNummer = null;
-  photos = [];
+  auftragNummer = null; photos = [];
   document.getElementById('scan-result-badge').classList.remove('visible');
   document.getElementById('scan-result-value').textContent = '—';
   document.getElementById('btn-to-photos').disabled = true;
@@ -970,13 +556,12 @@ function resetApp() {
   manualVisible = false;
   document.getElementById('btn-manual-toggle').textContent = '✏️ Manuell eingeben';
   renderPhotoGrid();
-  history = ['login', 'scan'];
+  navHistory = ['login', 'scan'];
   startScanner();
   showScreen('scan');
 }
 
-// ─── INIT ───
-checkAuthCallback();
+initMsal();
 </script>
 </body>
 </html>
