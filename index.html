@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-title" content="BS Upload">
 <meta name="theme-color" content="#0f0f0f">
 <title>BS·pic·upload</title>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{--bg:#0f0f0f;--surface:#1a1a1a;--surface2:#242424;--border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.18);--accent:#d4f23a;--accent-dim:rgba(212,242,58,0.12);--text:#f2f2f2;--muted:rgba(242,242,242,0.45);--danger:#ff5c5c;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--r:14px}
@@ -37,29 +36,52 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 .login-error.visible{display:block}
 .screen-heading{font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:6px;line-height:1.15}
 .screen-sub{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.5}
+
+/* SCAN */
 .scan-result-badge{display:none;align-items:center;gap:12px;background:var(--accent-dim);border:1px solid var(--accent);border-radius:var(--r);padding:16px;margin-bottom:20px}
 .scan-result-badge.visible{display:flex}
 .scan-result-label{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:3px}
 .scan-result-value{font-size:20px;font-weight:700;color:var(--accent)}
 .scan-result-change{font-size:12px;color:var(--muted);margin-top:4px;cursor:pointer;text-decoration:underline}
-.qr-photo-btn{width:100%;background:var(--surface);border:1.5px dashed var(--border2);border-radius:var(--r);padding:32px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;cursor:pointer;margin-bottom:16px;transition:all 0.2s}
-.qr-photo-btn:active{background:var(--surface2);border-color:var(--accent)}
-.qr-photo-btn-icon{font-size:48px}
-.qr-photo-btn-title{font-size:17px;font-weight:700;color:var(--text)}
-.qr-photo-btn-sub{font-size:12px;color:var(--muted);text-align:center;line-height:1.5}
-.qr-scanning-indicator{display:none;align-items:center;gap:12px;background:var(--surface);border-radius:var(--r);padding:16px;margin-bottom:16px}
-.qr-scanning-indicator.visible{display:flex}
-.qr-spin{width:20px;height:20px;border-radius:50%;border:2px solid var(--surface2);border-top-color:var(--accent);animation:spin 0.8s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-.qr-error{display:none;background:rgba(255,92,92,0.1);border:1px solid rgba(255,92,92,0.3);border-radius:var(--r);padding:14px 16px;font-size:13px;color:#ff8080;margin-bottom:16px;line-height:1.5;text-align:center}
-.qr-error.visible{display:block}
-.divider{display:flex;align-items:center;gap:12px;margin:4px 0 16px}
+
+/* Scan method buttons */
+.method-card{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);padding:20px;display:flex;align-items:center;gap:16px;cursor:pointer;margin-bottom:12px;transition:all 0.18s;text-align:left}
+.method-card:active{background:var(--surface2);border-color:var(--accent);transform:scale(0.98)}
+.method-card-icon{font-size:32px;flex-shrink:0}
+.method-card-title{font-size:15px;font-weight:700;color:var(--text);display:block;margin-bottom:2px}
+.method-card-sub{font-size:12px;color:var(--muted);display:block;line-height:1.4}
+
+/* Live scan */
+.live-wrap{display:none;margin-bottom:16px}
+.live-wrap.visible{display:block}
+.scan-area{position:relative;width:100%;aspect-ratio:1;border-radius:var(--r);overflow:hidden;background:#000}
+#scan-video{width:100%;height:100%;object-fit:cover}
+.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame{width:70%;aspect-ratio:1;position:relative}
+.scan-corner{position:absolute;width:24px;height:24px;border-color:var(--accent);border-style:solid;border-width:0}
+.scan-corner.tl{top:0;left:0;border-top-width:3px;border-left-width:3px;border-radius:4px 0 0 0}
+.scan-corner.tr{top:0;right:0;border-top-width:3px;border-right-width:3px;border-radius:0 4px 0 0}
+.scan-corner.bl{bottom:0;left:0;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 4px}
+.scan-corner.br{bottom:0;right:0;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 4px 0}
+.scan-hint{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
+.btn-stop-scan{width:100%;padding:12px;background:none;border:0.5px solid var(--border2);border-radius:var(--r);color:var(--muted);font-size:14px;cursor:pointer;margin-top:8px}
+
+.qr-scanning{display:none;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border-radius:var(--r);margin-bottom:12px}
+.qr-scanning.visible{display:flex}
+.spin{width:18px;height:18px;border-radius:50%;border:2px solid var(--surface2);border-top-color:var(--accent);animation:sp 0.8s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.divider{display:flex;align-items:center;gap:12px;margin:8px 0 16px}
 .divider::before,.divider::after{content:'';flex:1;height:0.5px;background:var(--border)}
 .divider span{font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase}
-.input-manual{width:100%;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:14px 16px;color:var(--text);font-size:16px;outline:none;margin-bottom:16px;letter-spacing:0.04em}
+
+.input-manual{width:100%;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:14px 16px;color:var(--text);font-size:16px;outline:none;margin-bottom:16px}
 .input-manual:focus{border-color:var(--accent)}
-#qr-input,#photo-input{display:none}
+
+#qr-file-input,#photo-input{display:none}
 canvas{display:none}
+
+/* PHOTOS */
 .auftrag-pill{display:inline-flex;align-items:center;gap:8px;background:var(--accent-dim);border:1px solid rgba(212,242,58,0.3);border-radius:100px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:20px}
 .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;min-height:100px}
 .photo-thumb{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--surface2)}
@@ -68,13 +90,12 @@ canvas{display:none}
 .btn-add-photo{aspect-ratio:1;border-radius:10px;border:1.5px dashed var(--border2);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;color:var(--muted);font-size:11px}
 .photo-count{font-size:12px;color:var(--muted);margin-bottom:20px}
 .photo-count span{color:var(--accent);font-weight:600}
-.btn-primary{width:100%;padding:17px;background:var(--accent);color:#0f0f0f;border:none;border-radius:var(--r);font-size:16px;font-weight:700;cursor:pointer;transition:opacity 0.2s,transform 0.15s;display:flex;align-items:center;justify-content:center;gap:8px}
-.btn-primary:active{opacity:0.85;transform:scale(0.98)}
+.btn-primary{width:100%;padding:17px;background:var(--accent);color:#0f0f0f;border:none;border-radius:var(--r);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-primary:disabled{opacity:0.3;cursor:not-allowed}
 .btn-secondary{width:100%;padding:15px;background:none;color:var(--text);border:0.5px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:500;cursor:pointer;margin-top:10px}
 .upload-status{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:40px}
 .upload-icon-wrap{width:80px;height:80px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:24px;position:relative}
-.upload-ring{position:absolute;inset:-6px;border-radius:50%;border:3px solid var(--surface2);border-top-color:var(--accent);animation:spin 1s linear infinite}
+.upload-ring{position:absolute;inset:-6px;border-radius:50%;border:3px solid var(--surface2);border-top-color:var(--accent);animation:sp 1s linear infinite}
 .upload-title{font-size:20px;font-weight:700;margin-bottom:8px}
 .upload-desc{font-size:14px;color:var(--muted);line-height:1.5;max-width:280px;margin-bottom:24px}
 .upload-progress{width:100%;max-width:280px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:8px}
@@ -98,6 +119,7 @@ canvas{display:none}
   <span class="topbar-title" id="topbar-title"></span>
 </div>
 
+<!-- LOGIN -->
 <div class="screen active" id="screen-login">
   <div class="login-box">
     <p class="login-logo">best·systems GmbH</p>
@@ -117,38 +139,65 @@ canvas{display:none}
   </div>
 </div>
 
+<!-- SCAN -->
 <div class="screen" id="screen-scan">
   <div class="steps">
     <div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div>
   </div>
-  <h2 class="screen-heading">Auftrag scannen</h2>
-  <p class="screen-sub">Fotografiere den QR-Code oder gib die Nummer manuell ein.</p>
+  <h2 class="screen-heading">Auftrag erfassen</h2>
+  <p class="screen-sub">Wähle eine Methode.</p>
 
   <div class="scan-result-badge" id="scan-result-badge">
     <div style="flex:1">
-      <div class="scan-result-label">Auftragsnummer erkannt ✓</div>
+      <div class="scan-result-label">Auftragsnummer ✓</div>
       <div class="scan-result-value" id="scan-result-value">—</div>
       <div class="scan-result-change" onclick="resetScan()">Ändern</div>
     </div>
+    <span style="font-size:28px">✅</span>
   </div>
 
-  <label class="qr-photo-btn" for="qr-input" id="qr-photo-btn">
-    <span class="qr-photo-btn-icon">📸</span>
-    <span class="qr-photo-btn-title">QR-Code fotografieren</span>
-    <span class="qr-photo-btn-sub">Kamera öffnet sich — Code fotografieren,<br>Nummer wird automatisch erkannt</span>
-  </label>
-  <input type="file" id="qr-input" accept="image/*" capture="environment" onchange="scanQRFromPhoto(this)">
+  <div id="scan-methods">
+    <!-- Native BarcodeDetector live scan -->
+    <button class="method-card" onclick="startLiveScan()">
+      <span class="method-card-icon">📷</span>
+      <div>
+        <span class="method-card-title">Live-Kamera scannen</span>
+        <span class="method-card-sub">Kamera auf QR-Code halten — wird automatisch erkannt</span>
+      </div>
+    </button>
+
+    <!-- File picker fallback -->
+    <label class="method-card" for="qr-file-input">
+      <span class="method-card-icon">🖼️</span>
+      <div>
+        <span class="method-card-title">Aus Fotos wählen</span>
+        <span class="method-card-sub">Bereits gemachtes Foto des QR-Codes auswählen</span>
+      </div>
+    </label>
+    <input type="file" id="qr-file-input" accept="image/*" onchange="scanFromFile(this)">
+  </div>
+
+  <!-- Live scanner -->
+  <div class="live-wrap" id="live-wrap">
+    <div class="scan-area">
+      <video id="scan-video" autoplay playsinline muted></video>
+      <div class="scan-overlay">
+        <div class="scan-frame">
+          <div class="scan-corner tl"></div><div class="scan-corner tr"></div>
+          <div class="scan-corner bl"></div><div class="scan-corner br"></div>
+        </div>
+      </div>
+    </div>
+    <p class="scan-hint">Ganzen QR-Code im Rahmen halten</p>
+    <button class="btn-stop-scan" onclick="stopLiveScan()">Kamera schließen</button>
+  </div>
+
+  <div class="qr-scanning" id="qr-scanning">
+    <div class="spin"></div>
+    <span style="font-size:13px;color:var(--muted)">Wird ausgelesen…</span>
+  </div>
+
   <canvas id="qr-canvas"></canvas>
-
-  <div class="qr-scanning-indicator" id="qr-scanning">
-    <div class="qr-spin"></div>
-    <span style="font-size:14px;color:var(--muted)">QR-Code wird ausgelesen…</span>
-  </div>
-
-  <div class="qr-error" id="qr-error">
-    QR-Code nicht erkannt — bitte nochmal fotografieren<br>
-    <span style="font-size:11px;opacity:0.7">Tipp: Code gerade halten, gute Beleuchtung, ganzen Code im Bild</span>
-  </div>
 
   <div class="divider"><span>oder manuell</span></div>
   <input class="input-manual" id="input-manual" type="text" placeholder="Auftragsnummer eingeben…" autocapitalize="characters" oninput="onManualInput(this.value)">
@@ -158,6 +207,7 @@ canvas{display:none}
   </div>
 </div>
 
+<!-- PHOTOS -->
 <div class="screen" id="screen-photos">
   <div class="steps">
     <div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div>
@@ -173,6 +223,7 @@ canvas{display:none}
   </div>
 </div>
 
+<!-- UPLOAD -->
 <div class="screen" id="screen-upload">
   <div class="upload-status">
     <div class="upload-icon-wrap"><div class="upload-ring"></div><span>☁️</span></div>
@@ -183,6 +234,7 @@ canvas{display:none}
   </div>
 </div>
 
+<!-- SUCCESS -->
 <div class="screen" id="screen-success">
   <div class="success-wrap">
     <div class="success-icon">✅</div>
@@ -206,9 +258,9 @@ const REDIRECT='https://best-systems-app.github.io/bs-pic-upload/';
 const SCOPES='Files.ReadWrite User.Read offline_access';
 const BASE_FOLDER='Auftraege-BS-pic-upload';
 
+// ── AUTH ──
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
 async function genPKCE(){const v=b64url(crypto.getRandomValues(new Uint8Array(32)));const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));return{verifier:v,challenge:b64url(h)};}
-
 async function doLogin(){
   const{verifier,challenge}=await genPKCE();
   const state=b64url(crypto.getRandomValues(new Uint8Array(8)));
@@ -216,26 +268,18 @@ async function doLogin(){
   const p=new URLSearchParams({client_id:CLIENT_ID,response_type:'code',redirect_uri:REDIRECT,scope:SCOPES,state,code_challenge:challenge,code_challenge_method:'S256',prompt:'select_account'});
   window.location.href=`https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/authorize?${p}`;
 }
-
 async function handleCallback(){
   const params=new URLSearchParams(window.location.search);
   const code=params.get('code'),state=params.get('state');
-  if(!code)return false;
-  if(state!==sessionStorage.getItem('oauth_s'))return false;
+  if(!code||state!==sessionStorage.getItem('oauth_s'))return false;
   const body=new URLSearchParams({client_id:CLIENT_ID,grant_type:'authorization_code',code,redirect_uri:REDIRECT,code_verifier:sessionStorage.getItem('pkce_v')});
   try{
     const resp=await fetch(`https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
     const data=await resp.json();
-    if(data.access_token){
-      localStorage.setItem('bs_at',data.access_token);localStorage.setItem('bs_rt',data.refresh_token||'');
-      localStorage.setItem('bs_exp',Date.now()+(data.expires_in-60)*1000);
-      window.history.replaceState({},'',REDIRECT);return true;
-    }
-    document.getElementById('login-error').textContent='Fehler: '+(data.error_description||'Unbekannt');
-    document.getElementById('login-error').classList.add('visible');return false;
+    if(data.access_token){localStorage.setItem('bs_at',data.access_token);localStorage.setItem('bs_rt',data.refresh_token||'');localStorage.setItem('bs_exp',Date.now()+(data.expires_in-60)*1000);window.history.replaceState({},'',REDIRECT);return true;}
+    document.getElementById('login-error').textContent='Fehler: '+(data.error_description||'Unbekannt');document.getElementById('login-error').classList.add('visible');return false;
   }catch(e){document.getElementById('login-error').textContent='Fehler: '+e.message;document.getElementById('login-error').classList.add('visible');return false;}
 }
-
 async function getToken(){
   const exp=parseInt(localStorage.getItem('bs_exp')||'0');
   if(Date.now()<exp)return localStorage.getItem('bs_at');
@@ -247,7 +291,8 @@ async function getToken(){
   return null;
 }
 
-let navHistory=['login'],auftragNummer=null,photos=[];
+// ── NAV ──
+let navHistory=['login'],auftragNummer=null,photos=[],scanStream=null,scanLoop=null;
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -258,82 +303,117 @@ function showScreen(id){
   title.textContent=t;showBack?back.classList.add('visible'):back.classList.remove('visible');
 }
 function navigate(id){navHistory.push(id);showScreen(id);}
-function goBack(){navHistory.pop();showScreen(navHistory[navHistory.length-1]||'login');}
+function goBack(){stopLiveScan();navHistory.pop();showScreen(navHistory[navHistory.length-1]||'login');}
 function showToast(msg,type='error'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type==='success'?' success':'');setTimeout(()=>t.classList.remove('show'),3500);}
 
-// ── ENHANCED QR SCAN ──
-function tryDecodeCanvas(canvas, ctx, img, w, h, filter) {
-  canvas.width = w; canvas.height = h;
-  ctx.filter = filter || 'none';
-  ctx.drawImage(img, 0, 0, w, h);
-  ctx.filter = 'none';
-  const imageData = ctx.getImageData(0, 0, w, h);
-
-  // Try normal
-  let code = jsQR(imageData.data, w, h, {inversionAttempts: 'attemptBoth'});
-  if (code && code.data) return code.data;
-
-  // Try with contrast boost via pixel manipulation
-  const data = imageData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const avg = (data[i] + data[i+1] + data[i+2]) / 3;
-    const val = avg > 128 ? 255 : 0;
-    data[i] = data[i+1] = data[i+2] = val;
+// ── NATIVE BARCODE DETECTOR (Live) ──
+async function startLiveScan(){
+  if(!('BarcodeDetector' in window)){
+    showToast('Live-Scan nicht verfügbar — bitte Foto wählen');
+    return;
   }
-  code = jsQR(data, w, h, {inversionAttempts: 'attemptBoth'});
-  if (code && code.data) return code.data;
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}});
+    scanStream=stream;
+    const video=document.getElementById('scan-video');
+    video.srcObject=stream;
+    await video.play();
+    document.getElementById('live-wrap').classList.add('visible');
+    document.getElementById('scan-methods').style.display='none';
 
-  return null;
+    const detector=new BarcodeDetector({formats:['qr_code','code_128','code_39','ean_13','ean_8','data_matrix','pdf417','aztec']});
+    const canvas=document.getElementById('qr-canvas');
+    const ctx=canvas.getContext('2d');
+
+    const loop=async()=>{
+      if(!scanStream)return;
+      if(video.readyState===video.HAVE_ENOUGH_DATA){
+        try{
+          const codes=await detector.detect(video);
+          if(codes.length>0){
+            stopLiveScan();
+            setAuftrag(codes[0].rawValue);
+            return;
+          }
+        }catch(e){}
+      }
+      scanLoop=requestAnimationFrame(loop);
+    };
+    scanLoop=requestAnimationFrame(loop);
+  }catch(e){
+    showToast('Kamerazugriff nicht möglich');
+  }
 }
 
-function scanQRFromPhoto(input) {
-  if (!input.files || !input.files[0]) return;
-  const file = input.files[0];
-  input.value = '';
+function stopLiveScan(){
+  if(scanLoop){cancelAnimationFrame(scanLoop);scanLoop=null;}
+  if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}
+  document.getElementById('live-wrap').classList.remove('visible');
+  document.getElementById('scan-methods').style.display='';
+}
+
+// ── FILE SCAN (BarcodeDetector on image) ──
+async function scanFromFile(input){
+  if(!input.files||!input.files[0])return;
+  const file=input.files[0];
+  input.value='';
   document.getElementById('qr-scanning').classList.add('visible');
-  document.getElementById('qr-error').classList.remove('visible');
 
-  const img = new Image();
-  const url = URL.createObjectURL(file);
-
-  img.onload = () => {
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=async()=>{
     URL.revokeObjectURL(url);
-    const canvas = document.getElementById('qr-canvas');
-    const ctx = canvas.getContext('2d', {willReadFrequently: true});
+    let found=null;
 
-    const W = img.width, H = img.height;
-    // Try multiple sizes — smaller often works better for jsQR
-    const attempts = [
-      [W, H, 'none'],
-      [1024, Math.round(1024*H/W), 'none'],
-      [512, Math.round(512*H/W), 'none'],
-      [800, Math.round(800*H/W), 'contrast(2) brightness(1.1)'],
-      [400, Math.round(400*H/W), 'contrast(3)'],
-      [256, Math.round(256*H/W), 'none'],
-    ];
+    // Method 1: Native BarcodeDetector on ImageBitmap
+    if('BarcodeDetector' in window){
+      try{
+        const bitmap=await createImageBitmap(file);
+        const detector=new BarcodeDetector({formats:['qr_code','code_128','code_39','ean_13','ean_8','data_matrix']});
+        const codes=await detector.detect(bitmap);
+        if(codes.length>0)found=codes[0].rawValue;
+        bitmap.close();
+      }catch(e){}
+    }
 
-    let found = null;
-    for (const [w, h, filter] of attempts) {
-      found = tryDecodeCanvas(canvas, ctx, img, w, h, filter);
-      if (found) break;
+    // Method 2: Canvas at multiple scales if not found
+    if(!found){
+      const canvas=document.getElementById('qr-canvas');
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});
+      // Dynamically load jsQR if needed
+      if(!window.jsQR){
+        await new Promise((res,rej)=>{
+          const s=document.createElement('script');
+          s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+          s.onload=res;s.onerror=rej;
+          document.head.appendChild(s);
+        });
+      }
+      const W=img.width,H=img.height;
+      for(const w of[W,1024,512,300]){
+        const h=Math.round(w*H/W);
+        canvas.width=w;canvas.height=h;
+        ctx.drawImage(img,0,0,w,h);
+        const id=ctx.getImageData(0,0,w,h);
+        // binarize
+        const d=new Uint8ClampedArray(id.data);
+        for(let i=0;i<d.length;i+=4){const v=(d[i]+d[i+1]+d[i+2])/3>128?255:0;d[i]=d[i+1]=d[i+2]=v;}
+        const bin=new ImageData(d,w,h);
+        let code=window.jsQR(bin.data,w,h,{inversionAttempts:'attemptBoth'});
+        if(!code)code=window.jsQR(id.data,w,h,{inversionAttempts:'attemptBoth'});
+        if(code&&code.data){found=code.data;break;}
+      }
     }
 
     document.getElementById('qr-scanning').classList.remove('visible');
-
-    if (found) {
+    if(found){
       setAuftrag(found);
-    } else {
-      document.getElementById('qr-error').classList.add('visible');
+    }else{
+      showToast('QR-Code nicht erkannt — bitte nochmal versuchen');
     }
   };
-
-  img.onerror = () => {
-    URL.revokeObjectURL(url);
-    document.getElementById('qr-scanning').classList.remove('visible');
-    document.getElementById('qr-error').classList.add('visible');
-  };
-
-  img.src = url;
+  img.onerror=()=>{URL.revokeObjectURL(url);document.getElementById('qr-scanning').classList.remove('visible');};
+  img.src=url;
 }
 
 function setAuftrag(value){
@@ -341,7 +421,7 @@ function setAuftrag(value){
   auftragNummer=value;
   document.getElementById('scan-result-value').textContent=value;
   document.getElementById('scan-result-badge').classList.add('visible');
-  document.getElementById('qr-photo-btn').style.display='none';
+  document.getElementById('scan-methods').style.display='none';
   document.getElementById('btn-to-photos').disabled=false;
   showToast('Erkannt: '+value,'success');
 }
@@ -349,38 +429,26 @@ function setAuftrag(value){
 function resetScan(){
   auftragNummer=null;
   document.getElementById('scan-result-badge').classList.remove('visible');
-  document.getElementById('qr-photo-btn').style.display='';
+  document.getElementById('scan-methods').style.display='';
   document.getElementById('btn-to-photos').disabled=true;
   document.getElementById('input-manual').value='';
-  document.getElementById('qr-error').classList.remove('visible');
 }
 
 function onManualInput(val){if(val.trim().length>=2)setAuftrag(val);}
-function goToPhotos(){if(!auftragNummer)return;document.getElementById('photo-auftrag-label').textContent=auftragNummer;navigate('photos');}
+function goToPhotos(){if(!auftragNummer)return;stopLiveScan();document.getElementById('photo-auftrag-label').textContent=auftragNummer;navigate('photos');}
 
-function addPhotos(input){
-  Array.from(input.files).forEach(file=>{
-    const reader=new FileReader();
-    reader.onload=e=>{photos.push({file,dataUrl:e.target.result});renderPhotoGrid();};
-    reader.readAsDataURL(file);
-  });
-  input.value='';
-}
+// ── PHOTOS ──
+function addPhotos(input){Array.from(input.files).forEach(file=>{const reader=new FileReader();reader.onload=e=>{photos.push({file,dataUrl:e.target.result});renderPhotoGrid();};reader.readAsDataURL(file);});input.value='';}
 function removePhoto(idx){photos.splice(idx,1);renderPhotoGrid();}
 function renderPhotoGrid(){
   const grid=document.getElementById('photo-grid');grid.innerHTML='';
-  photos.forEach((p,i)=>{
-    const div=document.createElement('div');div.className='photo-thumb';
-    div.innerHTML=`<img src="${p.dataUrl}" alt="Foto ${i+1}"><button class="photo-remove" onclick="removePhoto(${i})">×</button>`;
-    grid.appendChild(div);
-  });
-  const addBtn=document.createElement('label');addBtn.className='btn-add-photo';addBtn.htmlFor='photo-input';
-  addBtn.innerHTML='<span style="font-size:24px">📷</span><span>Hinzufügen</span>';
-  grid.appendChild(addBtn);
+  photos.forEach((p,i)=>{const div=document.createElement('div');div.className='photo-thumb';div.innerHTML=`<img src="${p.dataUrl}" alt="Foto ${i+1}"><button class="photo-remove" onclick="removePhoto(${i})">×</button>`;grid.appendChild(div);});
+  const a=document.createElement('label');a.className='btn-add-photo';a.htmlFor='photo-input';a.innerHTML='<span style="font-size:24px">📷</span><span>Hinzufügen</span>';grid.appendChild(a);
   document.getElementById('photo-count-val').textContent=photos.length;
   document.getElementById('btn-upload').disabled=photos.length===0;
 }
 
+// ── UPLOAD ──
 async function startUpload(){
   if(!photos.length)return;navigate('upload');
   const token=await getToken();
@@ -388,15 +456,14 @@ async function startUpload(){
   const folderPath=`${BASE_FOLDER}/${auftragNummer}`;
   const total=photos.length;let done=0;
   const bar=document.getElementById('upload-progress-bar'),label=document.getElementById('upload-progress-label');
-  document.getElementById('upload-desc').textContent=`Ordner: ${folderPath}`;
-  label.textContent=`0 von ${total}`;
+  document.getElementById('upload-desc').textContent=`Ordner: ${folderPath}`;label.textContent=`0 von ${total}`;
   try{
     await ensureFolder(token,folderPath);
     for(let i=0;i<photos.length;i++){
       const p=photos[i];
       const ext=(p.file.name.split('.').pop()||'jpg').toLowerCase();
-      const filename=`foto_${String(i+1).padStart(3,'0')}_${Date.now()}.${ext}`;
-      await uploadFile(token,folderPath,filename,p.file);
+      const fn=`foto_${String(i+1).padStart(3,'0')}_${Date.now()}.${ext}`;
+      await uploadFile(token,folderPath,fn,p.file);
       done++;bar.style.width=Math.round((done/total)*100)+'%';label.textContent=`${done} von ${total}`;
     }
     document.getElementById('success-path').textContent=`OneDrive / ${folderPath}`;
@@ -427,10 +494,9 @@ async function uploadFile(token,folderPath,filename,file){
 function resetApp(){
   auftragNummer=null;photos=[];
   document.getElementById('scan-result-badge').classList.remove('visible');
-  document.getElementById('qr-photo-btn').style.display='';
+  document.getElementById('scan-methods').style.display='';
   document.getElementById('btn-to-photos').disabled=true;
   document.getElementById('input-manual').value='';
-  document.getElementById('qr-error').classList.remove('visible');
   renderPhotoGrid();navHistory=['login','scan'];showScreen('scan');
 }
 
