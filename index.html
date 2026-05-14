@@ -536,7 +536,7 @@ function resetApp(){
   updateNumpadDisplay();renderPhotoGrid();
   navHistory=['login','scan'];
   // Switch to best tab for platform
-  if(isIOS)switchTab('paste'); else startScan();
+  startScan();
   showScreen('scan');
 }
 
@@ -552,12 +552,7 @@ function resetApp(){
 })();
 
 function setupScanScreen(){
-  // On iPhone: start on paste tab; on Android: start live scan
-  if(isIOS){
-    switchTab('paste');
-  } else {
-    startScan();
-  }
+  startScan();
 }
 </script>
 </body>
