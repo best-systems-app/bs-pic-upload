@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="BS Upload">
 <meta name="theme-color" content="#0f0f0f">
 <title>BS·pic·upload</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -214,6 +215,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
   <div class="tab-content active" id="tab-content-scan">
     <div class="scan-area">
       <video id="scan-video" autoplay playsinline muted></video>
+      <canvas id="scan-canvas" style="display:none"></canvas>
       <div class="scan-overlay">
         <div class="scan-frame">
           <div class="scan-corner tl"></div><div class="scan-corner tr"></div>
@@ -406,27 +408,49 @@ function switchTab(tab){
   if(tab==='scan')startScan();
 }
 
-// ── LIVE SCAN ──
+// ── LIVE SCAN (jsQR — iOS Safari + Android + Desktop) ──
 async function startScan(){
-  if(!('BarcodeDetector' in window)){
-    document.getElementById('scan-hint').textContent='Live-Scan nicht verfügbar — bitte Tab wechseln';
-    return;
+  const hint=document.getElementById('scan-hint');
+  if(typeof jsQR==='undefined'){
+    hint.textContent='Scanner wird geladen…';
+    // Wait for jsQR to load (CDN delay)
+    await new Promise(r=>setTimeout(r,1500));
+    if(typeof jsQR==='undefined'){hint.textContent='Scanner nicht verfügbar — bitte Tab wechseln';return;}
   }
   try{
-    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}}});
+    hint.textContent='Kamera wird gestartet…';
+    scanStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}
+    });
     const video=document.getElementById('scan-video');
-    video.srcObject=scanStream;await video.play();
-    const detector=new BarcodeDetector({formats:['qr_code','code_128','code_39','ean_13','ean_8']});
-    const loop=async()=>{
+    video.srcObject=scanStream;
+    await new Promise(resolve=>{video.onloadedmetadata=()=>{video.play().then(resolve);}});
+    hint.textContent='QR-Code im Rahmen halten';
+
+    const canvas=document.getElementById('scan-canvas');
+    const ctx=canvas.getContext('2d');
+
+    const loop=()=>{
       if(!scanStream)return;
-      if(video.readyState>=2){
-        try{const codes=await detector.detect(video);if(codes.length>0){stopScan();setAuftrag(codes[0].rawValue);return;}}catch(e){}
+      if(video.readyState===video.HAVE_ENOUGH_DATA){
+        canvas.width=video.videoWidth;
+        canvas.height=video.videoHeight;
+        ctx.drawImage(video,0,0,canvas.width,canvas.height);
+        const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code=jsQR(imageData.data,imageData.width,imageData.height,{inversionAttempts:'dontInvert'});
+        if(code&&code.data){
+          stopScan();
+          setAuftrag(code.data);
+          return;
+        }
       }
       scanLoop=requestAnimationFrame(loop);
     };
     scanLoop=requestAnimationFrame(loop);
-    document.getElementById('scan-hint').textContent='QR-Code im Rahmen halten';
-  }catch(e){document.getElementById('scan-hint').textContent='Kamerazugriff nicht möglich';}
+  }catch(e){
+    const msg=e.name==='NotAllowedError'?'Kamerazugriff verweigert — Einstellungen prüfen':'Kamera nicht verfügbar';
+    hint.textContent=msg;
+  }
 }
 function stopScan(){
   if(scanLoop){cancelAnimationFrame(scanLoop);scanLoop=null;}
