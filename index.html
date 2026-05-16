@@ -11,158 +11,167 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+/* ── FOCUS STATES (WCAG AA) ── */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 :root{
   --bg:#0f0f0f;--surface:#1a1a1a;--surface2:#242424;
   --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
   --accent:#e8001c;--accent-dim:rgba(232,0,28,0.12);--accent-hover:#ff1a33;
-  --text:#f2f2f2;--muted:rgba(242,242,242,0.45);--danger:#ff5c5c;
+  --text:#f2f2f2;--muted:rgba(242,242,242,0.62);--danger:#ff5c5c;
   --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--r:14px
 }
 body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;min-height:100dvh;overflow-x:hidden}
-.screen{display:none;flex-direction:column;min-height:100dvh;padding:calc(var(--safe-top) + 56px) 20px calc(var(--safe-bottom) + 24px)}
+/* max-width layout — centered on tablet/desktop */
+.screen{display:none;flex-direction:column;min-height:100dvh;padding:calc(var(--safe-top) + 56px) 20px calc(var(--safe-bottom) + 24px);max-width:480px;margin-inline:auto;width:100%}
 .screen.active{display:flex}
 .topbar{position:fixed;top:0;left:0;right:0;z-index:100;padding:calc(var(--safe-top) + 14px) 20px 14px;background:var(--bg);border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px}
-.topbar-logo{font-size:13px;font-weight:700;letter-spacing:0.08em;color:var(--accent)}
-.topbar-title{flex:1;font-size:13px;color:var(--muted)}
-.topbar-back{background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:4px 0;display:none}
+.topbar-logo{font-size:14px;font-weight:700;letter-spacing:0.08em;color:var(--accent)}
+.topbar-title{flex:1;font-size:14px;color:var(--muted)}
+.topbar-back{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;padding:4px 0;display:none}
 .topbar-back.visible{display:block}
-.steps{display:flex;gap:6px;margin-bottom:28px}
+/* ── STEPS with labels ── */
+.steps-wrap{margin-bottom:28px}
+.steps{display:flex;gap:6px;margin-bottom:5px}
 .step-dot{height:3px;border-radius:2px;flex:1;background:var(--surface2);transition:background 0.3s}
 .step-dot.done{background:var(--accent)}
-.step-dot.active{background:var(--accent);opacity:0.6}
-
-/* LOGIN */
+/* active dot: white ring + pulse so it's distinct in sunlight */
+.step-dot.active{background:var(--accent);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent);animation:step-pulse 2s ease-in-out infinite}
+@keyframes step-pulse{0%,100%{opacity:1}50%{opacity:0.65}}
+.steps-labels{display:flex;gap:6px}
+.step-label{flex:1;font-size:10px;color:var(--muted);text-align:center}
+/* ── LOGIN ── */
 #screen-login{justify-content:center;align-items:center;padding-top:0}
-.login-box{width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center}
-.login-logo-big{font-size:13px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.login-box{width:100%;max-width:min(90vw,390px);display:flex;flex-direction:column;align-items:center}
+/* enlarged logo as wordmark */
+.login-logo-big{font-size:16px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
 .login-title{font-size:28px;font-weight:700;letter-spacing:-0.5px;color:var(--text);margin-bottom:6px;text-align:center}
 .login-title span{color:var(--accent)}
-.login-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:36px;line-height:1.5}
-.btn-login{width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.2s}
+.login-sub{font-size:14px;color:var(--muted);text-align:center;margin-bottom:36px;line-height:1.5}
+.btn-login{width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.2s}
 .btn-login:active{background:var(--accent-hover)}
+.btn-login:disabled{opacity:0.6;cursor:not-allowed}
+/* login spinner */
+.btn-login-spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;display:none}
+.btn-login.loading .btn-login-spinner{display:block}
+.btn-login.loading .ms-icon{display:none}
 .ms-icon{width:18px;height:18px;flex-shrink:0}
-.login-hint{margin-top:16px;font-size:11px;color:var(--muted);text-align:center;line-height:1.6}
-.login-error{margin-top:16px;padding:12px 16px;background:rgba(232,0,28,0.1);border:1px solid rgba(232,0,28,0.3);border-radius:var(--r);font-size:13px;color:#ff6b6b;text-align:center;display:none}
+.login-hint{margin-top:16px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
+.login-error{margin-top:16px;padding:12px 16px;background:rgba(232,0,28,0.1);border:1px solid rgba(232,0,28,0.3);border-radius:var(--r);font-size:14px;color:#ff6b6b;text-align:center;display:none}
 .login-error.visible{display:block}
-
-.screen-heading{font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-bottom:6px}
-.screen-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5}
-
-/* RESULT BADGE */
+.screen-heading{font-size:20px;font-weight:700;letter-spacing:-0.4px;margin-bottom:6px}
+.screen-sub{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.5}
+/* ── RESULT BADGE ── */
 .result-box{display:none;align-items:center;gap:12px;background:var(--accent-dim);border:1.5px solid var(--accent);border-radius:var(--r);padding:16px;margin-bottom:20px}
 .result-box.visible{display:flex}
-.result-label{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:3px}
-.result-value{font-size:22px;font-weight:700;color:var(--accent);letter-spacing:-0.3px;word-break:break-all}
-.result-clear{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px;flex-shrink:0}
-
-/* TABS */
+.result-label{font-size:12px;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:3px}
+.result-value{font-size:20px;font-weight:700;color:var(--accent);letter-spacing:-0.3px;word-break:break-all}
+.result-clear{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0}
+/* ── TABS with SVG icons ── */
 .tabs{display:flex;gap:8px;margin-bottom:20px}
-.tab{flex:1;padding:12px 8px;background:var(--surface);border:0.5px solid var(--border2);border-radius:10px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s}
+.tab{flex:1;padding:12px 8px;background:var(--surface);border:0.5px solid var(--border2);border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px}
 .tab.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
-
 .tab-content{display:none}
 .tab-content.active{display:block}
-
-/* LIVE SCAN */
+/* ── LIVE SCAN ── */
 .scan-area{position:relative;width:100%;aspect-ratio:1;border-radius:var(--r);overflow:hidden;background:#000;margin-bottom:12px}
 #scan-video{width:100%;height:100%;object-fit:cover}
 .scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
 .scan-frame{width:70%;aspect-ratio:1;position:relative}
-.scan-corner{position:absolute;width:24px;height:24px;border-color:var(--accent);border-style:solid;border-width:0}
+/* enlarged corners: 38x38 */
+.scan-corner{position:absolute;width:38px;height:38px;border-color:var(--accent);border-style:solid;border-width:0}
 .scan-corner.tl{top:0;left:0;border-top-width:3px;border-left-width:3px;border-radius:4px 0 0 0}
 .scan-corner.tr{top:0;right:0;border-top-width:3px;border-right-width:3px;border-radius:0 4px 0 0}
 .scan-corner.bl{bottom:0;left:0;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 4px}
 .scan-corner.br{bottom:0;right:0;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 4px 0}
+/* animated scan line */
+.scan-line{position:absolute;left:4px;right:4px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);top:4px;animation:scan-sweep 2s linear infinite}
+@keyframes scan-sweep{0%{top:4%}100%{top:96%}}
 .scan-hint{font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px}
-
-/* PASTE (iPhone) */
+/* ── CAMERA ERROR CARD ── */
+.camera-error-card{display:none;flex-direction:column;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:28px 20px;text-align:center;margin-bottom:12px}
+.camera-error-card.visible{display:flex}
+.camera-error-title{font-size:16px;font-weight:600;color:var(--text)}
+.camera-error-desc{font-size:14px;color:var(--muted);line-height:1.5;max-width:260px}
+.btn-camera-settings{padding:12px 20px;background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:14px;font-weight:600;cursor:pointer}
+/* ── PASTE ── */
 .howto-box{background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:16px;margin-bottom:16px}
 .howto-step{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--border)}
 .howto-step:last-child{border-bottom:none;padding-bottom:0}
-.howto-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.howto-text{font-size:13px;color:var(--text);line-height:1.4}
+.howto-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.howto-text{font-size:14px;color:var(--text);line-height:1.4}
 .howto-text b{color:var(--accent)}
 .paste-row{display:flex;gap:10px;margin-bottom:8px}
 .paste-input{flex:1;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:14px 16px;color:var(--text);font-size:16px;outline:none}
 .paste-input:focus{border-color:var(--accent)}
-.btn-paste{background:var(--accent);border:none;border-radius:var(--r);padding:14px 16px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-paste{background:var(--accent);border:none;border-radius:var(--r);padding:14px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
 .btn-paste:active{background:var(--accent-hover)}
-.paste-hint{font-size:11px;color:var(--muted);margin-bottom:0}
-
-/* NUMPAD */
+.paste-hint{font-size:12px;color:var(--muted);margin-bottom:0}
+/* ── NUMPAD ── */
 .numpad-display{background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);padding:16px 20px;margin-bottom:16px;min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:border-color 0.2s}
 .numpad-display:active{border-color:var(--accent)}
-.numpad-value{font-size:26px;font-weight:700;letter-spacing:0.06em;color:var(--text);flex:1;word-break:break-all}
+.numpad-value{font-size:28px;font-weight:700;letter-spacing:0.06em;color:var(--text);flex:1;word-break:break-all}
 .numpad-value.placeholder{color:var(--muted);font-size:16px;font-weight:400}
 .numpad-backspace{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:8px;flex-shrink:0}
-
-/* Numpad collapse animation */
 .numpad-collapsible{overflow:hidden;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1),opacity 0.3s ease;max-height:400px;opacity:1}
 .numpad-collapsible.collapsed{max-height:0;opacity:0;pointer-events:none}
-
 .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
-.numpad-key{background:var(--surface);border:0.5px solid var(--border2);border-radius:12px;padding:18px 8px;font-size:22px;font-weight:600;color:var(--text);cursor:pointer;text-align:center;transition:all 0.15s;user-select:none}
+.numpad-key{background:var(--surface);border:0.5px solid var(--border2);border-radius:12px;padding:18px 8px;font-size:20px;font-weight:600;color:var(--text);cursor:pointer;text-align:center;transition:all 0.15s;user-select:none}
 .numpad-key:active{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(0.94)}
-.numpad-key.alpha{font-size:13px;font-weight:500;color:var(--muted)}
+.numpad-key.alpha{font-size:14px;font-weight:500;color:var(--muted)}
 .numpad-key.wide{background:var(--surface2)}
 .numpad-key.clear{color:var(--danger)}
-
-/* Edit hint shown when numpad collapsed */
 .numpad-edit-hint{display:none;font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px}
 .numpad-edit-hint.visible{display:block}
-
-/* PHOTOS */
-.auftrag-pill{display:inline-flex;align-items:center;gap:8px;background:var(--accent-dim);border:1px solid rgba(232,0,28,0.3);border-radius:100px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:20px}
+/* ── PHOTOS ── */
+.auftrag-pill{display:inline-flex;align-items:center;gap:8px;background:var(--accent-dim);border:1px solid rgba(232,0,28,0.3);border-radius:100px;padding:6px 14px;font-size:14px;font-weight:600;color:var(--accent);margin-bottom:20px}
 .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-.photo-thumb{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--surface2)}
-.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.photo-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.7);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.btn-add-photo{aspect-ratio:1;border-radius:10px;border:1.5px dashed var(--border2);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;color:var(--muted);font-size:11px}
-
-/* ADD PHOTO BUTTON - big and prominent */
+.photo-thumb{position:relative;aspect-ratio:1;border-radius:10px;background:var(--surface2)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:10px}
+/* touch target 44×44 via padding, visual stays small */
+.photo-remove{position:absolute;top:-2px;right:-2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.75);border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:11px}
 .btn-add-photo-big{width:100%;padding:22px;background:var(--surface);border:1.5px dashed var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;gap:14px;cursor:pointer;margin-bottom:16px;transition:all 0.2s}
 .btn-add-photo-big:active{background:var(--surface2);border-color:var(--accent)}
-.btn-add-photo-big-icon{font-size:32px}
 .btn-add-photo-big-text{font-size:16px;font-weight:600;color:var(--text)}
-
 .photo-count{font-size:12px;color:var(--muted);margin-bottom:20px}
 .photo-count span{color:var(--accent);font-weight:600}
 #photo-input{display:none}
-
 .btn-primary{width:100%;padding:17px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background 0.2s,transform 0.15s}
 .btn-primary:active{background:var(--accent-hover);transform:scale(0.98)}
 .btn-primary:disabled{opacity:0.3;cursor:not-allowed}
-.btn-secondary{width:100%;padding:15px;background:none;color:var(--text);border:0.5px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:500;cursor:pointer;margin-top:10px}
-
-/* UPLOAD */
+.btn-secondary{width:100%;padding:15px;background:none;color:var(--text);border:0.5px solid var(--border2);border-radius:var(--r);font-size:16px;font-weight:500;cursor:pointer;margin-top:10px}
+/* ── UPLOAD ── */
 .upload-status{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:40px}
-.upload-icon-wrap{width:80px;height:80px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:24px;position:relative}
+.upload-icon-wrap{width:80px;height:80px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;margin-bottom:24px;position:relative}
 .upload-ring{position:absolute;inset:-6px;border-radius:50%;border:3px solid var(--surface2);border-top-color:var(--accent);animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .upload-title{font-size:20px;font-weight:700;margin-bottom:8px}
 .upload-desc{font-size:14px;color:var(--muted);line-height:1.5;max-width:280px;margin-bottom:24px}
-.upload-progress{width:100%;max-width:280px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:8px}
-.upload-progress-bar{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width 0.4s ease}
+/* progress bar: 7px high with shimmer */
+.upload-progress{width:100%;max-width:280px;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:8px}
+.upload-progress-bar{height:100%;background:var(--accent);border-radius:4px;width:0%;transition:width 0.4s ease;position:relative;overflow:hidden}
+.upload-progress-bar::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);animation:prog-shimmer 1.5s ease-in-out infinite}
+@keyframes prog-shimmer{to{left:130%}}
 .upload-progress-label{font-size:12px;color:var(--muted)}
-
-/* SUCCESS */
+/* cancel button */
+.btn-upload-cancel{margin-top:24px;padding:12px 28px;background:none;border:0.5px solid var(--border2);border-radius:var(--r);color:var(--muted);font-size:14px;font-weight:500;cursor:pointer;transition:color 0.2s,border-color 0.2s}
+.btn-upload-cancel:hover{color:var(--text);border-color:var(--border2)}
+/* ── SUCCESS ── */
 .success-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.success-icon{width:80px;height:80px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:24px}
+.success-icon{width:80px;height:80px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:24px}
 .success-folder{background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:14px 18px;margin:20px 0 32px;width:100%;max-width:300px;text-align:left}
-.success-folder-label{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px}
+.success-folder-label{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px}
 .success-folder-path{font-size:14px;font-weight:600;color:var(--accent);word-break:break-all}
 .success-folder-count{font-size:12px;color:var(--muted);margin-top:4px}
-
+/* ── TOAST — success uses green ── */
 .toast{position:fixed;bottom:calc(var(--safe-bottom) + 20px);left:20px;right:20px;background:#333;color:#fff;padding:14px 18px;border-radius:var(--r);font-size:14px;font-weight:500;z-index:9999;transform:translateY(120%);transition:transform 0.3s;text-align:center}
 .toast.show{transform:translateY(0)}
-.toast.success{background:#1a0a0a;border:1px solid var(--accent);color:var(--accent)}
-.toast.error{background:var(--danger)}
+.toast.success{background:#0d1a0d;border:1px solid #7FBA00;color:#7FBA00}
+.toast.error{background:#2a0a0a;border:1px solid var(--danger);color:var(--danger)}
 </style>
 </head>
 <body>
-
 <div class="topbar">
-  <button class="topbar-back" id="btn-back" onclick="goBack()">← Zurück</button>
+  <button class="topbar-back" id="btn-back" onclick="goBack()" aria-label="Zurück">← Zurück</button>
   <span class="topbar-logo">BS·PIC·UPLOAD</span>
   <span class="topbar-title" id="topbar-title"></span>
 </div>
@@ -173,7 +182,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
     <p class="login-logo-big">best·systems GmbH</p>
     <h1 class="login-title">Auftrags<span>·</span>Fotos</h1>
     <p class="login-sub">Erfasse einen Auftrag und lade<br>Fotos direkt auf OneDrive hoch.</p>
-    <button class="btn-login" onclick="doLogin()">
+    <button class="btn-login" id="btn-login" onclick="doLogin()">
+      <div class="btn-login-spinner"></div>
       <svg class="ms-icon" viewBox="0 0 21 21" fill="none">
         <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
         <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
@@ -189,44 +199,66 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 
 <!-- SCAN -->
 <div class="screen" id="screen-scan">
-  <div class="steps">
-    <div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div>
+  <div class="steps-wrap">
+    <div class="steps">
+      <div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div>
+    </div>
+    <div class="steps-labels">
+      <span class="step-label">Scan</span>
+      <span class="step-label">Fotos</span>
+      <span class="step-label">Upload</span>
+    </div>
   </div>
   <h2 class="screen-heading">Auftragsnummer</h2>
   <p class="screen-sub">Scanne, füge ein oder tippe die Nummer.</p>
-
   <!-- Result -->
   <div class="result-box" id="result-box">
     <div style="flex:1">
       <div class="result-label">Auftragsnummer ✓</div>
       <div class="result-value" id="result-value">—</div>
     </div>
-    <button class="result-clear" onclick="resetScan()">✕</button>
+    <button class="result-clear" onclick="resetScan()" aria-label="Auftragsnummer löschen">✕</button>
   </div>
-
   <!-- Tabs -->
   <div class="tabs" id="scan-tabs">
-    <div class="tab active" id="tab-scan" onclick="switchTab('scan')">📷 Scannen</div>
-    <div class="tab" id="tab-paste" onclick="switchTab('paste')">📋 Einfügen</div>
-    <div class="tab" id="tab-numpad" onclick="switchTab('numpad')">🔢 Eingabe</div>
+    <div class="tab active" id="tab-scan" onclick="switchTab('scan')" role="button" tabindex="0">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Scannen
+    </div>
+    <div class="tab" id="tab-paste" onclick="switchTab('paste')" role="button" tabindex="0">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+      Einfügen
+    </div>
+    <div class="tab" id="tab-numpad" onclick="switchTab('numpad')" role="button" tabindex="0">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="10" y="3" width="4" height="4" rx="1"/><rect x="17" y="3" width="4" height="4" rx="1"/><rect x="3" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="17" y="10" width="4" height="4" rx="1"/><rect x="3" y="17" width="4" height="4" rx="1"/><rect x="10" y="17" width="4" height="4" rx="1"/></svg>
+      Eingabe
+    </div>
   </div>
 
   <!-- TAB: LIVE SCAN -->
   <div class="tab-content active" id="tab-content-scan">
-    <div class="scan-area">
+    <div class="scan-area" id="scan-area">
       <video id="scan-video" autoplay playsinline muted></video>
       <canvas id="scan-canvas" style="display:none"></canvas>
       <div class="scan-overlay">
         <div class="scan-frame">
           <div class="scan-corner tl"></div><div class="scan-corner tr"></div>
           <div class="scan-corner bl"></div><div class="scan-corner br"></div>
+          <div class="scan-line"></div>
         </div>
       </div>
+    </div>
+    <!-- Camera error card -->
+    <div class="camera-error-card" id="camera-error-card">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ff5c5c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p class="camera-error-title" id="camera-error-title">Kamerazugriff verweigert</p>
+      <p class="camera-error-desc" id="camera-error-desc">Die App benötigt Kamerazugriff um QR-Codes zu scannen. Bitte erlaube den Zugriff in den Browser-Einstellungen.</p>
+      <button class="btn-camera-settings" onclick="openCameraSettings()">Kameraeinstellungen öffnen</button>
     </div>
     <p class="scan-hint" id="scan-hint">QR-Code im Rahmen halten</p>
   </div>
 
-  <!-- TAB: PASTE (iPhone) -->
+  <!-- TAB: PASTE -->
   <div class="tab-content" id="tab-content-paste">
     <div class="howto-box">
       <div class="howto-step">
@@ -244,24 +276,18 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
     </div>
     <div class="paste-row">
       <input class="paste-input" id="paste-input" type="text" placeholder="Hier einfügen…" autocapitalize="characters" autocomplete="off" oninput="onTextInput(this.value,'paste')" onpaste="onPasteEvent()">
-      <button class="btn-paste" onclick="pasteFromClipboard()">📋 Einfügen</button>
+      <button class="btn-paste" onclick="pasteFromClipboard()">Einfügen</button>
     </div>
     <p class="paste-hint">Oder Feld lang drücken → „Einsetzen"</p>
   </div>
 
   <!-- TAB: NUMPAD -->
   <div class="tab-content" id="tab-content-numpad">
-
-    <!-- Display — always visible, tap to re-open numpad -->
     <div class="numpad-display" id="numpad-display-wrap" onclick="expandNumpad()">
       <div class="numpad-value placeholder" id="numpad-display">Nummer eingeben…</div>
-      <button class="numpad-backspace" onclick="event.stopPropagation();numpadBack()">⌫</button>
+      <button class="numpad-backspace" onclick="event.stopPropagation();numpadBack()" aria-label="Ziffer löschen">⌫</button>
     </div>
-
-    <!-- Edit hint — shows when numpad is collapsed -->
     <p class="numpad-edit-hint" id="numpad-edit-hint">Feld antippen zum Bearbeiten</p>
-
-    <!-- Collapsible numpad -->
     <div class="numpad-collapsible" id="numpad-collapsible">
       <div class="numpad">
         <button class="numpad-key" onclick="numpadKey('1')">1</button>
@@ -279,7 +305,6 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
       </div>
       <button class="btn-primary" id="btn-numpad-confirm" onclick="confirmNumpad()" disabled>Bestätigen →</button>
     </div>
-
   </div>
 
   <div style="margin-top:auto;padding-top:16px;">
@@ -289,24 +314,33 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 
 <!-- PHOTOS -->
 <div class="screen" id="screen-photos">
-  <div class="steps">
-    <div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div>
+  <div class="steps-wrap">
+    <div class="steps">
+      <div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div>
+    </div>
+    <div class="steps-labels">
+      <span class="step-label">Scan</span>
+      <span class="step-label">Fotos</span>
+      <span class="step-label">Upload</span>
+    </div>
   </div>
   <h2 class="screen-heading">Fotos aufnehmen</h2>
-  <div class="auftrag-pill">📋 <span id="photo-auftrag-label">—</span></div>
-
-  <!-- Big photo button -->
+  <div class="auftrag-pill">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+    <span id="photo-auftrag-label">—</span>
+  </div>
   <label class="btn-add-photo-big" for="photo-input">
-    <span class="btn-add-photo-big-icon">📷</span>
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
     <span class="btn-add-photo-big-text">Foto aufnehmen / hinzufügen</span>
   </label>
   <input type="file" id="photo-input" accept="image/*" capture="environment" multiple onchange="addPhotos(this)">
-
   <div class="photo-grid" id="photo-grid"></div>
-  <p class="photo-count"><span id="photo-count-val">0</span> Foto(s) ausgewählt</p>
-
+  <p class="photo-count" id="photo-count-text"><span id="photo-count-val">0</span> Fotos ausgewählt</p>
   <div style="margin-top:auto;padding-top:8px;">
-    <button class="btn-primary" id="btn-upload" onclick="startUpload()" disabled>☁️ Auf OneDrive hochladen</button>
+    <button class="btn-primary" id="btn-upload" onclick="startUpload()" disabled>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+      Auf OneDrive hochladen
+    </button>
     <button class="btn-secondary" onclick="goBack()">Zurück</button>
   </div>
 </div>
@@ -314,18 +348,25 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 <!-- UPLOAD -->
 <div class="screen" id="screen-upload">
   <div class="upload-status">
-    <div class="upload-icon-wrap"><div class="upload-ring"></div><span>☁️</span></div>
+    <div class="upload-icon-wrap">
+      <div class="upload-ring"></div>
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+    </div>
     <h2 class="upload-title">Wird hochgeladen…</h2>
     <p class="upload-desc" id="upload-desc">Fotos werden übertragen.</p>
     <div class="upload-progress"><div class="upload-progress-bar" id="upload-progress-bar"></div></div>
     <p class="upload-progress-label" id="upload-progress-label">0 von 0</p>
+    <button class="btn-upload-cancel" id="btn-upload-cancel" onclick="cancelUpload()">Abbrechen</button>
   </div>
 </div>
 
 <!-- SUCCESS -->
 <div class="screen" id="screen-success">
   <div class="success-wrap">
-    <div class="success-icon">✅</div>
+    <!-- SVG checkmark instead of emoji -->
+    <div class="success-icon">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
     <h2 class="screen-heading">Fertig!</h2>
     <p class="screen-sub">Alle Fotos wurden erfolgreich hochgeladen.</p>
     <div class="success-folder">
@@ -338,7 +379,6 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 </div>
 
 <div class="toast" id="toast"></div>
-
 <script>
 const CLIENT_ID='180e1fc6-2c2b-4a77-82e8-e3dbcd219491';
 const TENANT_ID='175d1508-8739-4676-bb66-98aa62745feb';
@@ -350,13 +390,18 @@ const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
 // ── AUTH ──
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
 async function genPKCE(){const v=b64url(crypto.getRandomValues(new Uint8Array(32)));const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));return{verifier:v,challenge:b64url(h)};}
+
 async function doLogin(){
+  const btn=document.getElementById('btn-login');
+  btn.disabled=true;
+  btn.classList.add('loading');
   const{verifier,challenge}=await genPKCE();
   const state=b64url(crypto.getRandomValues(new Uint8Array(8)));
   sessionStorage.setItem('pkce_v',verifier);sessionStorage.setItem('oauth_s',state);
   const p=new URLSearchParams({client_id:CLIENT_ID,response_type:'code',redirect_uri:REDIRECT,scope:SCOPES,state,code_challenge:challenge,code_challenge_method:'S256',prompt:'select_account'});
   window.location.href=`https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/authorize?${p}`;
 }
+
 async function handleCallback(){
   const params=new URLSearchParams(window.location.search);
   const code=params.get('code'),state=params.get('state');
@@ -365,10 +410,23 @@ async function handleCallback(){
   try{
     const resp=await fetch(`https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
     const data=await resp.json();
-    if(data.access_token){localStorage.setItem('bs_at',data.access_token);localStorage.setItem('bs_rt',data.refresh_token||'');localStorage.setItem('bs_exp',Date.now()+(data.expires_in-60)*1000);window.history.replaceState({},'',REDIRECT);return true;}
-    document.getElementById('login-error').textContent='Fehler: '+(data.error_description||'Unbekannt');document.getElementById('login-error').classList.add('visible');return false;
-  }catch(e){document.getElementById('login-error').textContent='Fehler: '+e.message;document.getElementById('login-error').classList.add('visible');return false;}
+    if(data.access_token){
+      localStorage.setItem('bs_at',data.access_token);
+      localStorage.setItem('bs_rt',data.refresh_token||'');
+      localStorage.setItem('bs_exp',Date.now()+(data.expires_in-60)*1000);
+      window.history.replaceState({},'',REDIRECT);
+      return true;
+    }
+    document.getElementById('login-error').textContent='Fehler: '+(data.error_description||'Unbekannt');
+    document.getElementById('login-error').classList.add('visible');
+    return false;
+  }catch(e){
+    document.getElementById('login-error').textContent='Fehler: '+e.message;
+    document.getElementById('login-error').classList.add('visible');
+    return false;
+  }
 }
+
 async function getToken(){
   const exp=parseInt(localStorage.getItem('bs_exp')||'0');
   if(Date.now()<exp)return localStorage.getItem('bs_at');
@@ -376,7 +434,12 @@ async function getToken(){
   const body=new URLSearchParams({client_id:CLIENT_ID,grant_type:'refresh_token',refresh_token:rt,scope:SCOPES});
   const resp=await fetch(`https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
   const data=await resp.json();
-  if(data.access_token){localStorage.setItem('bs_at',data.access_token);localStorage.setItem('bs_exp',Date.now()+(data.expires_in-60)*1000);if(data.refresh_token)localStorage.setItem('bs_rt',data.refresh_token);return data.access_token;}
+  if(data.access_token){
+    localStorage.setItem('bs_at',data.access_token);
+    localStorage.setItem('bs_exp',Date.now()+(data.expires_in-60)*1000);
+    if(data.refresh_token)localStorage.setItem('bs_rt',data.refresh_token);
+    return data.access_token;
+  }
   return null;
 }
 
@@ -389,11 +452,21 @@ function showScreen(id){
   const back=document.getElementById('btn-back'),title=document.getElementById('topbar-title');
   const map={login:['',false],scan:['Schritt 1/3',false],photos:['Schritt 2/3',true],upload:['Upload…',false],success:['',false]};
   const[t,showBack]=map[id]||['',false];
-  title.textContent=t;showBack?back.classList.add('visible'):back.classList.remove('visible');
+  title.textContent=t;
+  showBack?back.classList.add('visible'):back.classList.remove('visible');
 }
 function navigate(id){navHistory.push(id);showScreen(id);}
-function goBack(){if(navHistory[navHistory.length-1]==='photos')stopScan();navHistory.pop();showScreen(navHistory[navHistory.length-1]||'login');}
-function showToast(msg,type='error'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+(type);setTimeout(()=>t.classList.remove('show'),3000);}
+function goBack(){
+  if(navHistory[navHistory.length-1]==='photos')stopScan();
+  navHistory.pop();
+  showScreen(navHistory[navHistory.length-1]||'login');
+}
+function showToast(msg,type='error'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show '+(type);
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
 
 // ── TABS ──
 let activeTab='scan';
@@ -408,12 +481,17 @@ function switchTab(tab){
   if(tab==='scan')startScan();
 }
 
-// ── LIVE SCAN (jsQR — iOS Safari + Android + Desktop) ──
+// ── LIVE SCAN ──
 async function startScan(){
   const hint=document.getElementById('scan-hint');
+  const errorCard=document.getElementById('camera-error-card');
+  const scanArea=document.getElementById('scan-area');
+  errorCard.classList.remove('visible');
+  scanArea.style.display='';
+  hint.textContent='QR-Code im Rahmen halten';
+
   if(typeof jsQR==='undefined'){
     hint.textContent='Scanner wird geladen…';
-    // Wait for jsQR to load (CDN delay)
     await new Promise(r=>setTimeout(r,1500));
     if(typeof jsQR==='undefined'){hint.textContent='Scanner nicht verfügbar — bitte Tab wechseln';return;}
   }
@@ -426,38 +504,42 @@ async function startScan(){
     video.srcObject=scanStream;
     await new Promise(resolve=>{video.onloadedmetadata=()=>{video.play().then(resolve);}});
     hint.textContent='QR-Code im Rahmen halten';
-
     const canvas=document.getElementById('scan-canvas');
     const ctx=canvas.getContext('2d');
-
     const loop=()=>{
       if(!scanStream)return;
       if(video.readyState===video.HAVE_ENOUGH_DATA){
-        canvas.width=video.videoWidth;
-        canvas.height=video.videoHeight;
+        canvas.width=video.videoWidth;canvas.height=video.videoHeight;
         ctx.drawImage(video,0,0,canvas.width,canvas.height);
         const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
         const code=jsQR(imageData.data,imageData.width,imageData.height,{inversionAttempts:'dontInvert'});
-        if(code&&code.data){
-          stopScan();
-          setAuftrag(code.data);
-          return;
-        }
+        if(code&&code.data){stopScan();setAuftrag(code.data);return;}
       }
       scanLoop=requestAnimationFrame(loop);
     };
     scanLoop=requestAnimationFrame(loop);
   }catch(e){
-    const msg=e.name==='NotAllowedError'?'Kamerazugriff verweigert — Einstellungen prüfen':'Kamera nicht verfügbar';
-    hint.textContent=msg;
+    const isDenied=e.name==='NotAllowedError';
+    scanArea.style.display='none';
+    hint.textContent='';
+    document.getElementById('camera-error-title').textContent=isDenied?'Kamerazugriff verweigert':'Kamera nicht verfügbar';
+    document.getElementById('camera-error-desc').textContent=isDenied
+      ?'Die App benötigt Kamerazugriff um QR-Codes zu scannen. Bitte erlaube den Zugriff in den Browser-Einstellungen.'
+      :'Kein Kamera-Gerät gefunden. Bitte wechsle auf "Einfügen" oder "Eingabe".';
+    errorCard.classList.add('visible');
   }
 }
+
 function stopScan(){
   if(scanLoop){cancelAnimationFrame(scanLoop);scanLoop=null;}
   if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}
 }
 
-// ── PASTE (iPhone) ──
+function openCameraSettings(){
+  showToast('Kamerazugriff in den Browser-Einstellungen erlauben','error');
+}
+
+// ── PASTE ──
 function onPasteEvent(){setTimeout(()=>{const v=document.getElementById('paste-input').value.trim();if(v.length>=2)setAuftrag(v);},50);}
 function onTextInput(val){if(val.trim().length>=2)setAuftrag(val.trim());}
 async function pasteFromClipboard(){
@@ -470,51 +552,31 @@ async function pasteFromClipboard(){
 
 // ── NUMPAD ──
 let numpadExpanded=true;
-
-function numpadKey(k){
-  numpadVal+=k;updateNumpadDisplay();
-  document.getElementById('btn-numpad-confirm').disabled=numpadVal.length<2;
-}
+function numpadKey(k){numpadVal+=k;updateNumpadDisplay();document.getElementById('btn-numpad-confirm').disabled=numpadVal.length<2;}
 function numpadBack(){
-  numpadVal=numpadVal.slice(0,-1);
-  updateNumpadDisplay();
+  numpadVal=numpadVal.slice(0,-1);updateNumpadDisplay();
   document.getElementById('btn-numpad-confirm').disabled=numpadVal.length<2;
-  // If cleared completely, expand numpad again
   if(numpadVal.length===0)expandNumpad();
 }
-function numpadClear(){
-  numpadVal='';
-  updateNumpadDisplay();
-  document.getElementById('btn-numpad-confirm').disabled=true;
-  expandNumpad();
-}
+function numpadClear(){numpadVal='';updateNumpadDisplay();document.getElementById('btn-numpad-confirm').disabled=true;expandNumpad();}
 function updateNumpadDisplay(){
   const el=document.getElementById('numpad-display');
   if(numpadVal){el.textContent=numpadVal;el.classList.remove('placeholder');}
   else{el.textContent='Nummer eingeben…';el.classList.add('placeholder');}
 }
-
 function collapseNumpad(){
   numpadExpanded=false;
   document.getElementById('numpad-collapsible').classList.add('collapsed');
   document.getElementById('numpad-edit-hint').classList.add('visible');
-  // Update display border to show it's tappable
   document.getElementById('numpad-display-wrap').style.borderColor='var(--accent)';
 }
-
 function expandNumpad(){
   numpadExpanded=true;
   document.getElementById('numpad-collapsible').classList.remove('collapsed');
   document.getElementById('numpad-edit-hint').classList.remove('visible');
   document.getElementById('numpad-display-wrap').style.borderColor='';
 }
-
-function confirmNumpad(){
-  if(numpadVal.length>=2){
-    setAuftrag(numpadVal);
-    // Numpad collapse happens in setAuftrag
-  }
-}
+function confirmNumpad(){if(numpadVal.length>=2)setAuftrag(numpadVal);}
 
 // ── SET AUFTRAG ──
 function setAuftrag(value){
@@ -525,11 +587,8 @@ function setAuftrag(value){
   document.getElementById('btn-to-photos').disabled=false;
   stopScan();
   showToast('Auftrag: '+value,'success');
-
-  // Collapse numpad if we're on that tab
   if(activeTab==='numpad')collapseNumpad();
 }
-
 function resetScan(){
   auftragNummer=null;
   document.getElementById('result-box').classList.remove('visible');
@@ -540,7 +599,6 @@ function resetScan(){
   expandNumpad();
   if(activeTab==='scan')startScan();
 }
-
 function goToPhotos(){
   if(!auftragNummer)return;
   stopScan();
@@ -549,8 +607,20 @@ function goToPhotos(){
 }
 
 // ── PHOTOS ──
+const MAX_PHOTOS=20;
+const MAX_FILE_MB=15;
+
 function addPhotos(input){
-  Array.from(input.files).forEach(file=>{
+  const newFiles=Array.from(input.files);
+  let warnedLimit=false;
+  newFiles.forEach(file=>{
+    if(photos.length>=MAX_PHOTOS){
+      if(!warnedLimit){showToast('Mehr als '+MAX_PHOTOS+' Fotos — Upload kann sehr lange dauern','error');warnedLimit=true;}
+      return;
+    }
+    if(file.size>MAX_FILE_MB*1024*1024){
+      showToast('"'+file.name+'" ist größer als '+MAX_FILE_MB+' MB','error');
+    }
     const reader=new FileReader();
     reader.onload=e=>{photos.push({file,dataUrl:e.target.result});renderPhotoGrid();};
     reader.readAsDataURL(file);
@@ -562,35 +632,53 @@ function renderPhotoGrid(){
   const grid=document.getElementById('photo-grid');grid.innerHTML='';
   photos.forEach((p,i)=>{
     const div=document.createElement('div');div.className='photo-thumb';
-    div.innerHTML=`<img src="${p.dataUrl}" alt="Foto ${i+1}"><button class="photo-remove" onclick="removePhoto(${i})">×</button>`;
+    div.innerHTML=`<img src="${p.dataUrl}" alt="Foto ${i+1}"><button class="photo-remove" onclick="removePhoto(${i})" aria-label="Foto entfernen">×</button>`;
     grid.appendChild(div);
   });
-  document.getElementById('photo-count-val').textContent=photos.length;
-  document.getElementById('btn-upload').disabled=photos.length===0;
+  const n=photos.length;
+  const word=n===1?'Foto':'Fotos';
+  document.getElementById('photo-count-text').innerHTML=`<span id="photo-count-val">${n}</span> ${word} ausgewählt`;
+  document.getElementById('btn-upload').disabled=n===0;
 }
 
-// ── UPLOAD ──
+// ── UPLOAD with AbortController ──
+let uploadAbortController=null;
+
 async function startUpload(){
-  if(!photos.length)return;navigate('upload');
+  if(!photos.length)return;
+  navigate('upload');
+  uploadAbortController=new AbortController();
   const token=await getToken();
   if(!token){showToast('Nicht angemeldet','error');showScreen('login');return;}
   const folderPath=`${BASE_FOLDER}/${auftragNummer}`;
   const total=photos.length;let done=0;
   const bar=document.getElementById('upload-progress-bar'),label=document.getElementById('upload-progress-label');
-  document.getElementById('upload-desc').textContent=`Ordner: ${folderPath}`;label.textContent=`0 von ${total}`;
+  document.getElementById('upload-desc').textContent=`Ordner: ${folderPath}`;
+  label.textContent=`0 von ${total}`;
   try{
     await ensureFolder(token,folderPath);
     for(let i=0;i<photos.length;i++){
+      if(uploadAbortController.signal.aborted)throw new DOMException('Abgebrochen','AbortError');
       const p=photos[i];
       const ext=(p.file.name.split('.').pop()||'jpg').toLowerCase();
       const fn=`foto_${String(i+1).padStart(3,'0')}_${Date.now()}.${ext}`;
-      await uploadFile(token,folderPath,fn,p.file);
-      done++;bar.style.width=Math.round((done/total)*100)+'%';label.textContent=`${done} von ${total}`;
+      await uploadFile(token,folderPath,fn,p.file,uploadAbortController.signal);
+      done++;
+      bar.style.width=Math.round((done/total)*100)+'%';
+      label.textContent=`${done} von ${total}`;
     }
+    const photoWord=total===1?'Foto':'Fotos';
     document.getElementById('success-path').textContent=`OneDrive / ${folderPath}`;
-    document.getElementById('success-count').textContent=`${total} Foto(s) hochgeladen`;
+    document.getElementById('success-count').textContent=`${total} ${photoWord} hochgeladen`;
     navigate('success');
-  }catch(e){showToast('Upload fehlgeschlagen: '+(e.message||'Fehler'),'error');navigate('photos');}
+  }catch(e){
+    if(e.name==='AbortError'){showToast('Upload abgebrochen','error');navigate('photos');}
+    else{showToast('Upload fehlgeschlagen: '+(e.message||'Fehler'),'error');navigate('photos');}
+  }finally{uploadAbortController=null;}
+}
+
+function cancelUpload(){
+  if(uploadAbortController){uploadAbortController.abort();}
 }
 
 async function ensureFolder(token,path){
@@ -605,9 +693,10 @@ async function ensureFolder(token,path){
     }
   }
 }
-async function uploadFile(token,folderPath,filename,file){
+
+async function uploadFile(token,folderPath,filename,file,signal){
   const url=`https://graph.microsoft.com/v1.0/me/drive/root:/${folderPath}/${filename}:/content`;
-  const resp=await fetch(url,{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':file.type||'image/jpeg'},body:file});
+  const resp=await fetch(url,{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':file.type||'image/jpeg'},body:file,signal});
   if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||resp.statusText);}
 }
 
@@ -633,10 +722,7 @@ function resetApp(){
   if(token){navHistory=['login','scan'];showScreen('scan');setupScanScreen();}
   else showScreen('login');
 })();
-
-function setupScanScreen(){
-  startScan();
-}
+function setupScanScreen(){startScan();}
 </script>
 </body>
 </html>
