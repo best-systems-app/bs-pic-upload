@@ -89,10 +89,15 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 .paste-hint{font-size:11px;color:var(--muted);margin-bottom:0}
 
 /* NUMPAD */
-.numpad-display{background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);padding:16px 20px;margin-bottom:16px;min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.numpad-display{background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);padding:16px 20px;margin-bottom:16px;min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:border-color 0.2s}
+.numpad-display:active{border-color:var(--accent)}
 .numpad-value{font-size:26px;font-weight:700;letter-spacing:0.06em;color:var(--text);flex:1;word-break:break-all}
 .numpad-value.placeholder{color:var(--muted);font-size:16px;font-weight:400}
 .numpad-backspace{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:8px;flex-shrink:0}
+
+/* Numpad collapse animation */
+.numpad-collapsible{overflow:hidden;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1),opacity 0.3s ease;max-height:400px;opacity:1}
+.numpad-collapsible.collapsed{max-height:0;opacity:0;pointer-events:none}
 
 .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
 .numpad-key{background:var(--surface);border:0.5px solid var(--border2);border-radius:12px;padding:18px 8px;font-size:22px;font-weight:600;color:var(--text);cursor:pointer;text-align:center;transition:all 0.15s;user-select:none}
@@ -100,6 +105,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 .numpad-key.alpha{font-size:13px;font-weight:500;color:var(--muted)}
 .numpad-key.wide{background:var(--surface2)}
 .numpad-key.clear{color:var(--danger)}
+
+/* Edit hint shown when numpad collapsed */
+.numpad-edit-hint{display:none;font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px}
+.numpad-edit-hint.visible{display:block}
 
 /* PHOTOS */
 .auftrag-pill{display:inline-flex;align-items:center;gap:8px;background:var(--accent-dim);border:1px solid rgba(232,0,28,0.3);border-radius:100px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:20px}
@@ -194,14 +203,14 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
     <button class="result-clear" onclick="resetScan()">✕</button>
   </div>
 
-  <!-- Tabs — shown based on platform -->
+  <!-- Tabs -->
   <div class="tabs" id="scan-tabs">
     <div class="tab active" id="tab-scan" onclick="switchTab('scan')">📷 Scannen</div>
     <div class="tab" id="tab-paste" onclick="switchTab('paste')">📋 Einfügen</div>
     <div class="tab" id="tab-numpad" onclick="switchTab('numpad')">🔢 Eingabe</div>
   </div>
 
-  <!-- TAB: LIVE SCAN (Android) / hidden on iPhone -->
+  <!-- TAB: LIVE SCAN -->
   <div class="tab-content active" id="tab-content-scan">
     <div class="scan-area">
       <video id="scan-video" autoplay playsinline muted></video>
@@ -240,25 +249,35 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 
   <!-- TAB: NUMPAD -->
   <div class="tab-content" id="tab-content-numpad">
-    <div class="numpad-display">
+
+    <!-- Display — always visible, tap to re-open numpad -->
+    <div class="numpad-display" id="numpad-display-wrap" onclick="expandNumpad()">
       <div class="numpad-value placeholder" id="numpad-display">Nummer eingeben…</div>
-      <button class="numpad-backspace" onclick="numpadBack()">⌫</button>
+      <button class="numpad-backspace" onclick="event.stopPropagation();numpadBack()">⌫</button>
     </div>
-    <div class="numpad">
-      <button class="numpad-key" onclick="numpadKey('1')">1</button>
-      <button class="numpad-key" onclick="numpadKey('2')">2</button>
-      <button class="numpad-key" onclick="numpadKey('3')">3</button>
-      <button class="numpad-key" onclick="numpadKey('4')">4</button>
-      <button class="numpad-key" onclick="numpadKey('5')">5</button>
-      <button class="numpad-key" onclick="numpadKey('6')">6</button>
-      <button class="numpad-key" onclick="numpadKey('7')">7</button>
-      <button class="numpad-key" onclick="numpadKey('8')">8</button>
-      <button class="numpad-key" onclick="numpadKey('9')">9</button>
-      <button class="numpad-key alpha wide" onclick="numpadKey('-')">—</button>
-      <button class="numpad-key" onclick="numpadKey('0')">0</button>
-      <button class="numpad-key clear wide" onclick="numpadClear()">✕</button>
+
+    <!-- Edit hint — shows when numpad is collapsed -->
+    <p class="numpad-edit-hint" id="numpad-edit-hint">Feld antippen zum Bearbeiten</p>
+
+    <!-- Collapsible numpad -->
+    <div class="numpad-collapsible" id="numpad-collapsible">
+      <div class="numpad">
+        <button class="numpad-key" onclick="numpadKey('1')">1</button>
+        <button class="numpad-key" onclick="numpadKey('2')">2</button>
+        <button class="numpad-key" onclick="numpadKey('3')">3</button>
+        <button class="numpad-key" onclick="numpadKey('4')">4</button>
+        <button class="numpad-key" onclick="numpadKey('5')">5</button>
+        <button class="numpad-key" onclick="numpadKey('6')">6</button>
+        <button class="numpad-key" onclick="numpadKey('7')">7</button>
+        <button class="numpad-key" onclick="numpadKey('8')">8</button>
+        <button class="numpad-key" onclick="numpadKey('9')">9</button>
+        <button class="numpad-key alpha wide" onclick="numpadKey('-')">—</button>
+        <button class="numpad-key" onclick="numpadKey('0')">0</button>
+        <button class="numpad-key clear wide" onclick="numpadClear()">✕</button>
+      </div>
+      <button class="btn-primary" id="btn-numpad-confirm" onclick="confirmNumpad()" disabled>Bestätigen →</button>
     </div>
-    <button class="btn-primary" id="btn-numpad-confirm" onclick="confirmNumpad()" disabled>Bestätigen →</button>
+
   </div>
 
   <div style="margin-top:auto;padding-top:16px;">
@@ -277,7 +296,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
   <!-- Big photo button -->
   <label class="btn-add-photo-big" for="photo-input">
     <span class="btn-add-photo-big-icon">📷</span>
-    <span class="btn-add-photo-big-text">Foto aufnehmen</span>
+    <span class="btn-add-photo-big-text">Foto aufnehmen / hinzufügen</span>
   </label>
   <input type="file" id="photo-input" accept="image/*" capture="environment" multiple onchange="addPhotos(this)">
 
@@ -387,10 +406,10 @@ function switchTab(tab){
   if(tab==='scan')startScan();
 }
 
-// ── LIVE SCAN (BarcodeDetector — Android/Chrome) ──
+// ── LIVE SCAN ──
 async function startScan(){
   if(!('BarcodeDetector' in window)){
-    document.getElementById('scan-hint').textContent='Live-Scan nicht verfügbar auf diesem Gerät — bitte Tab wechseln';
+    document.getElementById('scan-hint').textContent='Live-Scan nicht verfügbar — bitte Tab wechseln';
     return;
   }
   try{
@@ -426,18 +445,52 @@ async function pasteFromClipboard(){
 }
 
 // ── NUMPAD ──
+let numpadExpanded=true;
+
 function numpadKey(k){
   numpadVal+=k;updateNumpadDisplay();
   document.getElementById('btn-numpad-confirm').disabled=numpadVal.length<2;
 }
-function numpadBack(){numpadVal=numpadVal.slice(0,-1);updateNumpadDisplay();document.getElementById('btn-numpad-confirm').disabled=numpadVal.length<2;}
-function numpadClear(){numpadVal='';updateNumpadDisplay();document.getElementById('btn-numpad-confirm').disabled=true;}
+function numpadBack(){
+  numpadVal=numpadVal.slice(0,-1);
+  updateNumpadDisplay();
+  document.getElementById('btn-numpad-confirm').disabled=numpadVal.length<2;
+  // If cleared completely, expand numpad again
+  if(numpadVal.length===0)expandNumpad();
+}
+function numpadClear(){
+  numpadVal='';
+  updateNumpadDisplay();
+  document.getElementById('btn-numpad-confirm').disabled=true;
+  expandNumpad();
+}
 function updateNumpadDisplay(){
   const el=document.getElementById('numpad-display');
   if(numpadVal){el.textContent=numpadVal;el.classList.remove('placeholder');}
   else{el.textContent='Nummer eingeben…';el.classList.add('placeholder');}
 }
-function confirmNumpad(){if(numpadVal.length>=2)setAuftrag(numpadVal);}
+
+function collapseNumpad(){
+  numpadExpanded=false;
+  document.getElementById('numpad-collapsible').classList.add('collapsed');
+  document.getElementById('numpad-edit-hint').classList.add('visible');
+  // Update display border to show it's tappable
+  document.getElementById('numpad-display-wrap').style.borderColor='var(--accent)';
+}
+
+function expandNumpad(){
+  numpadExpanded=true;
+  document.getElementById('numpad-collapsible').classList.remove('collapsed');
+  document.getElementById('numpad-edit-hint').classList.remove('visible');
+  document.getElementById('numpad-display-wrap').style.borderColor='';
+}
+
+function confirmNumpad(){
+  if(numpadVal.length>=2){
+    setAuftrag(numpadVal);
+    // Numpad collapse happens in setAuftrag
+  }
+}
 
 // ── SET AUFTRAG ──
 function setAuftrag(value){
@@ -448,7 +501,11 @@ function setAuftrag(value){
   document.getElementById('btn-to-photos').disabled=false;
   stopScan();
   showToast('Auftrag: '+value,'success');
+
+  // Collapse numpad if we're on that tab
+  if(activeTab==='numpad')collapseNumpad();
 }
+
 function resetScan(){
   auftragNummer=null;
   document.getElementById('result-box').classList.remove('visible');
@@ -456,8 +513,10 @@ function resetScan(){
   document.getElementById('paste-input').value='';
   numpadVal='';updateNumpadDisplay();
   document.getElementById('btn-numpad-confirm').disabled=true;
+  expandNumpad();
   if(activeTab==='scan')startScan();
 }
+
 function goToPhotos(){
   if(!auftragNummer)return;
   stopScan();
@@ -534,8 +593,8 @@ function resetApp(){
   document.getElementById('btn-to-photos').disabled=true;
   document.getElementById('paste-input').value='';
   updateNumpadDisplay();renderPhotoGrid();
+  expandNumpad();
   navHistory=['login','scan'];
-  // Switch to best tab for platform
   startScan();
   showScreen('scan');
 }
