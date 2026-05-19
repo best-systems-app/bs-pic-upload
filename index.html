@@ -7,8 +7,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BS Upload">
 <meta name="theme-color" content="#0f0f0f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>BS·pic·upload</title>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" defer crossorigin="anonymous"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 /* ── FOCUS STATES (WCAG AA) ── */
@@ -68,7 +70,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 .result-clear{background:none;border:none;color:rgba(127,186,0,0.7);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0}
 /* ── TABS with SVG icons ── */
 .tabs{display:flex;gap:8px;margin-bottom:20px}
-.tab{flex:1;padding:12px 8px;background:var(--surface);border:0.5px solid var(--border2);border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px}
+.tab{flex:1;padding:12px 8px;background:var(--surface);border:0.5px solid var(--border2);border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px;-webkit-appearance:none;appearance:none;font-family:inherit}
 .tab.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
 .tab-content{display:none}
 .tab-content.active{display:block}
@@ -87,6 +89,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 .scan-line{position:absolute;left:4px;right:4px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);top:4px;animation:scan-sweep 2s linear infinite}
 @keyframes scan-sweep{0%{top:4%}100%{top:96%}}
 .scan-hint{font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px}
+.scan-area.hidden{display:none}
 /* ── CAMERA ERROR CARD ── */
 .camera-error-card{display:none;flex-direction:column;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:28px 20px;text-align:center;margin-bottom:12px}
 .camera-error-card.visible{display:flex}
@@ -173,7 +176,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 </style>
 </head>
 <body>
-<div class="topbar">
+<div class="topbar" role="banner">
   <button class="topbar-back" id="btn-back" onclick="goBack()" aria-label="Zurück">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><polyline points="15 18 9 12 15 6"/></svg>
     Zurück
@@ -182,6 +185,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
   <span class="topbar-title" id="topbar-title"></span>
 </div>
 
+<main id="app-main">
 <!-- LOGIN -->
 <div class="screen active" id="screen-login">
   <div class="login-box">
@@ -198,7 +202,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
       </svg>
       Mit Microsoft anmelden
     </button>
-    <div class="login-error" id="login-error"></div>
+    <div class="login-error" id="login-error" role="alert" aria-live="assertive" aria-atomic="true"></div>
     <p class="login-hint">Einmalige Anmeldung mit deinem<br>Best Systems Microsoft-Konto</p>
   </div>
 </div>
@@ -216,7 +220,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
     </div>
   </div>
   <h2 class="screen-heading">Auftragsnummer</h2>
-  <p class="screen-sub">Scanne, füge ein oder tippe die Nummer.</p>
+  <p class="screen-sub">Scanne, füge ein oder tippe die <strong>7-stellige</strong> Nummer.</p>
   <!-- Result -->
   <div class="result-box" id="result-box">
     <div style="flex:1">
@@ -226,19 +230,19 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
     <button class="result-clear" onclick="resetScan()" aria-label="Auftragsnummer löschen">✕</button>
   </div>
   <!-- Tabs -->
-  <div class="tabs" id="scan-tabs">
-    <div class="tab active" id="tab-scan" onclick="switchTab('scan')" role="button" tabindex="0">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+  <div class="tabs" id="scan-tabs" role="tablist" aria-label="Eingabemethode">
+    <button class="tab active" id="tab-scan" onclick="switchTab('scan')" role="tab" aria-selected="true" aria-controls="tab-content-scan">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       Scannen
-    </div>
-    <div class="tab" id="tab-paste" onclick="switchTab('paste')" role="button" tabindex="0">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+    </button>
+    <button class="tab" id="tab-paste" onclick="switchTab('paste')" role="tab" aria-selected="false" aria-controls="tab-content-paste">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
       Einfügen
-    </div>
-    <div class="tab" id="tab-numpad" onclick="switchTab('numpad')" role="button" tabindex="0">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="10" y="3" width="4" height="4" rx="1"/><rect x="17" y="3" width="4" height="4" rx="1"/><rect x="3" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="17" y="10" width="4" height="4" rx="1"/><rect x="3" y="17" width="4" height="4" rx="1"/><rect x="10" y="17" width="4" height="4" rx="1"/></svg>
+    </button>
+    <button class="tab" id="tab-numpad" onclick="switchTab('numpad')" role="tab" aria-selected="false" aria-controls="tab-content-numpad">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="10" y="3" width="4" height="4" rx="1"/><rect x="17" y="3" width="4" height="4" rx="1"/><rect x="3" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="17" y="10" width="4" height="4" rx="1"/><rect x="3" y="17" width="4" height="4" rx="1"/><rect x="10" y="17" width="4" height="4" rx="1"/></svg>
       Eingabe
-    </div>
+    </button>
   </div>
 
   <!-- TAB: LIVE SCAN -->
@@ -281,7 +285,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
       </div>
     </div>
     <div class="paste-row">
-      <input class="paste-input" id="paste-input" type="text" placeholder="Hier einfügen…" autocapitalize="characters" autocomplete="off" oninput="onTextInput(this.value,'paste')" onpaste="onPasteEvent()">
+      <input class="paste-input" id="paste-input" type="text" placeholder="7-stellige Nr. einfügen…" autocapitalize="characters" autocomplete="off" maxlength="7" oninput="onTextInput(this.value,'paste')" onpaste="onPasteEvent()">
       <button class="btn-paste" onclick="pasteFromClipboard()">Einfügen</button>
     </div>
     <p class="paste-hint">Oder Feld lang drücken → „Einsetzen"</p>
@@ -290,7 +294,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
   <!-- TAB: NUMPAD -->
   <div class="tab-content" id="tab-content-numpad">
     <div class="numpad-display" id="numpad-display-wrap" onclick="expandNumpad()">
-      <div class="numpad-value placeholder" id="numpad-display">Nummer eingeben…</div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div class="numpad-value placeholder" id="numpad-display">Nummer eingeben…</div>
+        <div id="numpad-counter" style="font-size:12px;color:var(--muted);flex-shrink:0">0 / 7</div>
+      </div>
       <button class="numpad-backspace" onclick="event.stopPropagation();numpadBack()" aria-label="Ziffer löschen">⌫</button>
     </div>
     <p class="numpad-edit-hint" id="numpad-edit-hint">Feld antippen zum Bearbeiten</p>
@@ -384,8 +391,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
-<div class="version-badge">v1.2.4</div>
+</main><!-- /#app-main -->
+<div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
+<div class="version-badge">v1.3.0</div>
 <script>
 const CLIENT_ID='180e1fc6-2c2b-4a77-82e8-e3dbcd219491';
 const TENANT_ID='175d1508-8739-4676-bb66-98aa62745feb';
@@ -481,9 +489,11 @@ function switchTab(tab){
   if(activeTab===tab)return;
   if(activeTab==='scan')stopScan();
   activeTab=tab;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>{t.classList.remove('active');t.setAttribute('aria-selected','false');});
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
+  const activeEl=document.getElementById('tab-'+tab);
+  activeEl.classList.add('active');
+  activeEl.setAttribute('aria-selected','true');
   document.getElementById('tab-content-'+tab).classList.add('active');
   if(tab==='scan')startScan();
 }
@@ -515,7 +525,7 @@ async function startScan(){
   const errorCard=document.getElementById('camera-error-card');
   const scanArea=document.getElementById('scan-area');
   errorCard.classList.remove('visible');
-  scanArea.style.display='';
+  scanArea.classList.remove('hidden');
   hint.textContent='Kamera wird gestartet…';
   // alten Tap-Button entfernen falls vorhanden
   const old=scanArea.querySelector('.tap-to-play-btn');if(old)old.remove();
@@ -586,7 +596,7 @@ async function startScan(){
     }
 
   }catch(e){
-    scanArea.style.display='none';
+    scanArea.classList.add('hidden');
     hint.textContent='';
     const isDenied=e.name==='NotAllowedError'||e.name==='PermissionDeniedError';
     const notFound=e.name==='NotFoundError'||e.name==='DevicesNotFoundError';
@@ -656,29 +666,61 @@ function openCameraSettings(){
 }
 
 // ── PASTE ──
-function onPasteEvent(){setTimeout(()=>{const v=document.getElementById('paste-input').value.trim();if(v.length>=2)setAuftrag(v);},50);}
-function onTextInput(val){if(val.trim().length>=2)setAuftrag(val.trim());}
+const AUFTRAG_LENGTH=7;
+function onPasteEvent(){
+  setTimeout(()=>{
+    const v=document.getElementById('paste-input').value.trim();
+    if(v.length===AUFTRAG_LENGTH)setAuftrag(v);
+    else if(v.length>0)showToast('Auftragsnummer muss genau '+AUFTRAG_LENGTH+' Stellen haben (aktuell: '+v.length+')','error');
+  },50);
+}
+function onTextInput(val){
+  const v=val.trim();
+  if(v.length===AUFTRAG_LENGTH)setAuftrag(v);
+}
 async function pasteFromClipboard(){
   try{
     const text=await navigator.clipboard.readText();
-    if(text&&text.trim().length>=2){document.getElementById('paste-input').value=text.trim();setAuftrag(text.trim());}
-    else showToast('Zwischenablage leer — zuerst Text kopieren','error');
+    const v=(text||'').trim();
+    if(!v){showToast('Zwischenablage leer — zuerst Text kopieren','error');return;}
+    document.getElementById('paste-input').value=v.slice(0,AUFTRAG_LENGTH);
+    if(v.length===AUFTRAG_LENGTH){setAuftrag(v);}
+    else{showToast('Auftragsnummer muss genau '+AUFTRAG_LENGTH+' Stellen haben (aktuell: '+v.length+')','error');}
   }catch(e){document.getElementById('paste-input').focus();showToast('Feld lang drücken → Einsetzen','error');}
 }
 
 // ── NUMPAD ──
 let numpadExpanded=true;
-function numpadKey(k){numpadVal+=k;updateNumpadDisplay();document.getElementById('btn-numpad-confirm').disabled=numpadVal.length<2;}
+function numpadKey(k){
+  if(numpadVal.length>=AUFTRAG_LENGTH)return; // max 7 Stellen
+  numpadVal+=k;
+  updateNumpadDisplay();
+  const ok=numpadVal.length===AUFTRAG_LENGTH;
+  document.getElementById('btn-numpad-confirm').disabled=!ok;
+  if(ok)setAuftrag(numpadVal); // auto-bestätigen bei 7 Stellen
+}
 function numpadBack(){
-  numpadVal=numpadVal.slice(0,-1);updateNumpadDisplay();
-  document.getElementById('btn-numpad-confirm').disabled=numpadVal.length<2;
+  numpadVal=numpadVal.slice(0,-1);
+  updateNumpadDisplay();
+  document.getElementById('btn-numpad-confirm').disabled=numpadVal.length!==AUFTRAG_LENGTH;
   if(numpadVal.length===0)expandNumpad();
 }
 function numpadClear(){numpadVal='';updateNumpadDisplay();document.getElementById('btn-numpad-confirm').disabled=true;expandNumpad();}
 function updateNumpadDisplay(){
   const el=document.getElementById('numpad-display');
-  if(numpadVal){el.textContent=numpadVal;el.classList.remove('placeholder');}
-  else{el.textContent='Nummer eingeben…';el.classList.add('placeholder');}
+  const counter=document.getElementById('numpad-counter');
+  if(numpadVal){
+    el.textContent=numpadVal;
+    el.classList.remove('placeholder');
+    if(counter){
+      counter.textContent=numpadVal.length+' / '+AUFTRAG_LENGTH;
+      counter.style.color=numpadVal.length===AUFTRAG_LENGTH?'#7FBA00':'var(--muted)';
+    }
+  }else{
+    el.textContent='Nummer eingeben…';
+    el.classList.add('placeholder');
+    if(counter){counter.textContent='0 / '+AUFTRAG_LENGTH;counter.style.color='var(--muted)';}
+  }
 }
 function collapseNumpad(){
   numpadExpanded=false;
@@ -692,11 +734,16 @@ function expandNumpad(){
   document.getElementById('numpad-edit-hint').classList.remove('visible');
   document.getElementById('numpad-display-wrap').style.borderColor='';
 }
-function confirmNumpad(){if(numpadVal.length>=2)setAuftrag(numpadVal);}
+function confirmNumpad(){if(numpadVal.length===AUFTRAG_LENGTH)setAuftrag(numpadVal);}
 
 // ── SET AUFTRAG ──
 function setAuftrag(value){
-  value=value.trim();if(!value)return;
+  value=value.trim();
+  if(!value)return;
+  if(value.length!==AUFTRAG_LENGTH){
+    showToast('Auftragsnummer muss genau '+AUFTRAG_LENGTH+' Stellen haben (aktuell: '+value.length+')','error');
+    return;
+  }
   auftragNummer=value;
   document.getElementById('result-value').textContent=value;
   document.getElementById('result-box').classList.add('visible');
@@ -748,7 +795,12 @@ function renderPhotoGrid(){
   const grid=document.getElementById('photo-grid');grid.innerHTML='';
   photos.forEach((p,i)=>{
     const div=document.createElement('div');div.className='photo-thumb';
-    div.innerHTML=`<img src="${p.dataUrl}" alt="Foto ${i+1}"><button class="photo-remove" onclick="removePhoto(${i})" aria-label="Foto entfernen">×</button>`;
+    const img=document.createElement('img');
+    img.src=p.dataUrl;img.alt='Foto '+(i+1);
+    const btn=document.createElement('button');
+    btn.className='photo-remove';btn.setAttribute('aria-label','Foto entfernen');
+    btn.textContent='×';btn.addEventListener('click',()=>removePhoto(i));
+    div.appendChild(img);div.appendChild(btn);
     grid.appendChild(div);
   });
   const n=photos.length;
@@ -786,59 +838,4 @@ async function startUpload(){
     const photoWord=total===1?'Foto':'Fotos';
     document.getElementById('success-path').textContent=`OneDrive / ${folderPath}`;
     document.getElementById('success-count').textContent=`${total} ${photoWord} hochgeladen`;
-    navigate('success');
-  }catch(e){
-    if(e.name==='AbortError'){showToast('Upload abgebrochen','error');navigate('photos');}
-    else{showToast('Upload fehlgeschlagen: '+(e.message||'Fehler'),'error');navigate('photos');}
-  }finally{uploadAbortController=null;}
-}
-
-function cancelUpload(){
-  if(uploadAbortController){uploadAbortController.abort();}
-}
-
-async function ensureFolder(token,path){
-  const parts=path.split('/');let current='';
-  for(const part of parts){
-    current=current?`${current}/${part}`:part;
-    const check=await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${current}`,{headers:{Authorization:'Bearer '+token}});
-    if(check.status===404){
-      const pp=current.split('/');pp.pop();
-      const parentPath=pp.length?`root:/${pp.join('/')}:/children`:'root/children';
-      await fetch(`https://graph.microsoft.com/v1.0/me/drive/${parentPath}`,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({name:part,folder:{},['@microsoft.graph.conflictBehavior']:'rename'})});
-    }
-  }
-}
-
-async function uploadFile(token,folderPath,filename,file,signal){
-  const url=`https://graph.microsoft.com/v1.0/me/drive/root:/${folderPath}/${filename}:/content`;
-  const resp=await fetch(url,{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':file.type||'image/jpeg'},body:file,signal});
-  if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||resp.statusText);}
-}
-
-function resetApp(){
-  auftragNummer=null;photos=[];numpadVal='';
-  document.getElementById('result-box').classList.remove('visible');
-  document.getElementById('btn-to-photos').disabled=true;
-  document.getElementById('paste-input').value='';
-  updateNumpadDisplay();renderPhotoGrid();
-  expandNumpad();
-  navHistory=['login','scan'];
-  startScan();
-  showScreen('scan');
-}
-
-// ── INIT ──
-(async()=>{
-  if(window.location.search.includes('code=')){
-    const ok=await handleCallback();
-    if(ok){navHistory=['login','scan'];showScreen('scan');setupScanScreen();return;}
-  }
-  const token=await getToken();
-  if(token){navHistory=['login','scan'];showScreen('scan');setupScanScreen();}
-  else showScreen('login');
-})();
-function setupScanScreen(){startScan();}
-</script>
-</body>
-</html>
+    
