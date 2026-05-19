@@ -56,7 +56,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 .btn-login.loading .ms-icon{display:none}
 .ms-icon{width:18px;height:18px;flex-shrink:0}
 .login-hint{margin-top:16px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
-.login-error{margin-top:16px;padding:12px 16px;background:rgba(232,0,28,0.1);border:1px solid rgba(232,0,28,0.3);border-radius:var(--r);font-size:14px;color:#ff6b6b;text-align:center;display:none}
+.login-error{margin-top:16px;padding:14px 18px;background:rgba(232,0,28,0.18);border:1.5px solid rgba(232,0,28,0.6);border-radius:var(--r);font-size:14px;font-weight:500;color:#ff8080;text-align:center;display:none}
 .login-error.visible{display:block}
 .screen-heading{font-size:20px;font-weight:700;letter-spacing:-0.4px;margin-bottom:6px}
 .screen-sub{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.5}
@@ -127,8 +127,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
 .photo-thumb{position:relative;aspect-ratio:1;border-radius:10px;background:var(--surface2)}
 .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:10px}
-/* touch target 44×44 via padding, visual stays small */
-.photo-remove{position:absolute;top:-2px;right:-2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.75);border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:11px}
+/* touch target 44×44 via ::before, visual stays 22px */
+.photo-remove{position:absolute;top:-2px;right:-2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.75);border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.photo-remove::before{content:'';position:absolute;inset:-11px}
 .btn-add-photo-big{width:100%;padding:22px;background:var(--surface);border:1.5px dashed var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;gap:14px;cursor:pointer;margin-bottom:16px;transition:all 0.2s}
 .btn-add-photo-big:active{background:var(--surface2);border-color:var(--accent)}
 .btn-add-photo-big-text{font-size:16px;font-weight:600;color:var(--text)}
@@ -171,7 +172,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 </head>
 <body>
 <div class="topbar">
-  <button class="topbar-back" id="btn-back" onclick="goBack()" aria-label="Zurück">← Zurück</button>
+  <button class="topbar-back" id="btn-back" onclick="goBack()" aria-label="Zurück">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><polyline points="15 18 9 12 15 6"/></svg>
+    Zurück
+  </button>
   <span class="topbar-logo">BS·PIC·UPLOAD</span>
   <span class="topbar-title" id="topbar-title"></span>
 </div>
@@ -374,7 +378,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
       <div class="success-folder-path" id="success-path">—</div>
       <div class="success-folder-count" id="success-count">—</div>
     </div>
-    <button class="btn-primary" onclick="resetApp()" style="max-width:300px;">Neuer Auftrag</button>
+    <button class="btn-primary" onclick="resetApp()">Neuer Auftrag</button>
   </div>
 </div>
 
@@ -450,7 +454,7 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
   const back=document.getElementById('btn-back'),title=document.getElementById('topbar-title');
-  const map={login:['',false],scan:['Schritt 1/3',false],photos:['Schritt 2/3',true],upload:['Upload…',false],success:['',false]};
+  const map={login:['',false],scan:['',false],photos:['',true],upload:['Upload…',false],success:['',false]};
   const[t,showBack]=map[id]||['',false];
   title.textContent=t;
   showBack?back.classList.add('visible'):back.classList.remove('visible');
@@ -488,28 +492,65 @@ async function startScan(){
   const scanArea=document.getElementById('scan-area');
   errorCard.classList.remove('visible');
   scanArea.style.display='';
-  hint.textContent='QR-Code im Rahmen halten';
+  hint.textContent='Kamera wird gestartet…';
 
   if(typeof jsQR==='undefined'){
-    hint.textContent='Scanner wird geladen…';
     await new Promise(r=>setTimeout(r,1500));
-    if(typeof jsQR==='undefined'){hint.textContent='Scanner nicht verfügbar — bitte Tab wechseln';return;}
+    if(typeof jsQR==='undefined'){
+      scanArea.style.display='none';
+      document.getElementById('camera-error-title').textContent='Scanner nicht verfügbar';
+      document.getElementById('camera-error-desc').textContent='Bitte wechsle auf "Einfügen" oder "Eingabe".';
+      errorCard.classList.add('visible');
+      return;
+    }
   }
+
+  const video=document.getElementById('scan-video');
+  const canvas=document.getElementById('scan-canvas');
+  const ctx=canvas.getContext('2d');
+
+  // iOS: playsinline + muted zwingend per JS setzen
+  video.setAttribute('playsinline','');
+  video.muted=true;
+
   try{
-    hint.textContent='Kamera wird gestartet…';
-    scanStream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}
+    // Fallback-Kette: Rückkamera → beliebige Kamera
+    const constraints=[
+      {video:{facingMode:{ideal:'environment'}}},
+      {video:{facingMode:'environment'}},
+      {video:true}
+    ];
+    let stream=null;
+    for(const c of constraints){
+      try{stream=await navigator.mediaDevices.getUserMedia(c);break;}
+      catch(e){
+        if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError')throw e;
+        // nächste Constraint versuchen
+      }
+    }
+    if(!stream)throw new Error('Keine Kamera gefunden');
+    scanStream=stream;
+    video.srcObject=stream;
+
+    // Auf "abspielbereit" warten — Race-condition-sicher (readyState prüfen BEVOR Event gesetzt)
+    await new Promise((resolve,reject)=>{
+      const timeout=setTimeout(()=>reject(new Error('Timeout')),10000);
+      const done=()=>{clearTimeout(timeout);resolve();};
+      if(video.readyState>=2){done();return;}
+      video.addEventListener('canplay',done,{once:true});
+      video.addEventListener('loadeddata',done,{once:true});
     });
-    const video=document.getElementById('scan-video');
-    video.srcObject=scanStream;
-    await new Promise(resolve=>{video.onloadedmetadata=()=>{video.play().then(resolve);}});
+
+    try{await video.play();}catch(e){/* Autoplay-Policy: Video läuft evtl. schon */}
+
     hint.textContent='QR-Code im Rahmen halten';
-    const canvas=document.getElementById('scan-canvas');
-    const ctx=canvas.getContext('2d');
+
     const loop=()=>{
       if(!scanStream)return;
-      if(video.readyState===video.HAVE_ENOUGH_DATA){
-        canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+      // videoWidth===0 abfangen (passiert auf iOS kurz nach play())
+      if(video.readyState>=2&&video.videoWidth>0&&video.videoHeight>0){
+        canvas.width=video.videoWidth;
+        canvas.height=video.videoHeight;
         ctx.drawImage(video,0,0,canvas.width,canvas.height);
         const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
         const code=jsQR(imageData.data,imageData.width,imageData.height,{inversionAttempts:'dontInvert'});
@@ -519,12 +560,16 @@ async function startScan(){
     };
     scanLoop=requestAnimationFrame(loop);
   }catch(e){
-    const isDenied=e.name==='NotAllowedError';
     scanArea.style.display='none';
     hint.textContent='';
-    document.getElementById('camera-error-title').textContent=isDenied?'Kamerazugriff verweigert':'Kamera nicht verfügbar';
+    const isDenied=e.name==='NotAllowedError'||e.name==='PermissionDeniedError';
+    const notFound=e.name==='NotFoundError'||e.name==='DevicesNotFoundError';
+    document.getElementById('camera-error-title').textContent=
+      isDenied?'Kamerazugriff verweigert':
+      notFound?'Keine Kamera gefunden':
+      'Kamera nicht verfügbar';
     document.getElementById('camera-error-desc').textContent=isDenied
-      ?'Die App benötigt Kamerazugriff um QR-Codes zu scannen. Bitte erlaube den Zugriff in den Browser-Einstellungen.'
+      ?'Die App benötigt Kamerazugriff zum Scannen von QR-Codes. Bitte erlaube den Zugriff in den Browser-Einstellungen.'
       :'Kein Kamera-Gerät gefunden. Bitte wechsle auf "Einfügen" oder "Eingabe".';
     errorCard.classList.add('visible');
   }
