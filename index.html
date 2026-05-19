@@ -168,6 +168,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 .toast.show{transform:translateY(0)}
 .toast.success{background:#0d1a0d;border:1px solid #7FBA00;color:#7FBA00}
 .toast.error{background:#2a0a0a;border:1px solid var(--danger);color:var(--danger)}
+/* ── VERSION BADGE ── */
+.version-badge{position:fixed;bottom:calc(var(--safe-bottom) + 8px);right:12px;font-size:10px;color:rgba(255,255,255,0.2);z-index:9998;pointer-events:none;letter-spacing:0.05em}
 </style>
 </head>
 <body>
@@ -383,6 +385,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="version-badge">v1.2.1</div>
 <script>
 const CLIENT_ID='180e1fc6-2c2b-4a77-82e8-e3dbcd219491';
 const TENANT_ID='175d1508-8739-4676-bb66-98aa62745feb';
@@ -530,18 +533,24 @@ async function startScan(){
     }
     if(!stream)throw new Error('Keine Kamera gefunden');
     scanStream=stream;
+
+    // Kamera-API verfügbar?
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)
+      throw new Error('Kamera-API nicht verfügbar (HTTPS erforderlich)');
+
     video.srcObject=stream;
 
-    // Auf "abspielbereit" warten — Race-condition-sicher (readyState prüfen BEVOR Event gesetzt)
+    // iOS-Fix: play() ZUERST aufrufen, dann auf canplay warten
+    // (anders als Desktop: iOS startet Laden erst mit play())
+    const playPromise=video.play();
     await new Promise((resolve,reject)=>{
       const timeout=setTimeout(()=>reject(new Error('Timeout')),10000);
       const done=()=>{clearTimeout(timeout);resolve();};
       if(video.readyState>=2){done();return;}
       video.addEventListener('canplay',done,{once:true});
       video.addEventListener('loadeddata',done,{once:true});
+      if(playPromise)playPromise.catch(e=>{clearTimeout(timeout);reject(e);});
     });
-
-    try{await video.play();}catch(e){/* Autoplay-Policy: Video läuft evtl. schon */}
 
     hint.textContent='QR-Code im Rahmen halten';
 
