@@ -61,11 +61,11 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 .screen-heading{font-size:20px;font-weight:700;letter-spacing:-0.4px;margin-bottom:6px}
 .screen-sub{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.5}
 /* ── RESULT BADGE ── */
-.result-box{display:none;align-items:center;gap:12px;background:var(--accent-dim);border:1.5px solid var(--accent);border-radius:var(--r);padding:16px;margin-bottom:20px}
+.result-box{display:none;align-items:center;gap:12px;background:rgba(127,186,0,0.12);border:1.5px solid #7FBA00;border-radius:var(--r);padding:16px;margin-bottom:20px}
 .result-box.visible{display:flex}
-.result-label{font-size:12px;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:3px}
-.result-value{font-size:20px;font-weight:700;color:var(--accent);letter-spacing:-0.3px;word-break:break-all}
-.result-clear{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0}
+.result-label{font-size:12px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(127,186,0,0.8);margin-bottom:3px}
+.result-value{font-size:20px;font-weight:700;color:#7FBA00;letter-spacing:-0.3px;word-break:break-all}
+.result-clear{background:none;border:none;color:rgba(127,186,0,0.7);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0}
 /* ── TABS with SVG icons ── */
 .tabs{display:flex;gap:8px;margin-bottom:20px}
 .tab{flex:1;padding:12px 8px;background:var(--surface);border:0.5px solid var(--border2);border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px}
@@ -313,7 +313,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
     </div>
   </div>
 
-  <div style="margin-top:auto;padding-top:16px;">
+  <div style="padding-top:8px;">
     <button class="btn-primary" id="btn-to-photos" onclick="goToPhotos()" disabled>Fotos aufnehmen →</button>
   </div>
 </div>
@@ -385,7 +385,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version-badge">v1.2.2</div>
+<div class="version-badge">v1.2.4</div>
 <script>
 const CLIENT_ID='180e1fc6-2c2b-4a77-82e8-e3dbcd219491';
 const TENANT_ID='175d1508-8739-4676-bb66-98aa62745feb';
@@ -517,15 +517,17 @@ async function startScan(){
   errorCard.classList.remove('visible');
   scanArea.style.display='';
   hint.textContent='Kamera wird gestartet…';
+  // alten Tap-Button entfernen falls vorhanden
+  const old=scanArea.querySelector('.tap-to-play-btn');if(old)old.remove();
 
+  // jsQR laden
   if(typeof jsQR==='undefined'){
     hint.textContent='Scanner wird geladen…';
     const loaded=await ensureJsQR();
     if(!loaded){
-      scanArea.style.display='none';
       hint.textContent='';
       document.getElementById('camera-error-title').textContent='Scanner nicht verfügbar';
-      document.getElementById('camera-error-desc').textContent='Netzwerkfehler beim Laden. Bitte wechsle auf "Einfügen" oder "Eingabe".';
+      document.getElementById('camera-error-desc').textContent='Netzwerkfehler. Bitte "Einfügen" oder "Eingabe" verwenden.';
       document.getElementById('btn-camera-settings').style.display='none';
       errorCard.classList.add('visible');
       return;
@@ -533,66 +535,56 @@ async function startScan(){
   }
   document.getElementById('btn-camera-settings').style.display='';
 
+  // Kamera-API vorhanden?
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    hint.textContent='';
+    document.getElementById('camera-error-title').textContent='Kamera nicht unterstützt';
+    document.getElementById('camera-error-desc').textContent='Bitte öffne die Seite in Safari (iOS) oder Chrome (Android) über HTTPS.';
+    document.getElementById('btn-camera-settings').style.display='none';
+    errorCard.classList.add('visible');
+    return;
+  }
+
   const video=document.getElementById('scan-video');
   const canvas=document.getElementById('scan-canvas');
   const ctx=canvas.getContext('2d');
 
-  // iOS: playsinline + muted zwingend per JS setzen
-  video.setAttribute('playsinline','');
+  // Alle iOS-Pflicht-Attribute als Eigenschaft UND Attribut setzen
   video.muted=true;
+  video.playsInline=true;
+  video.setAttribute('playsinline','');
+  video.setAttribute('webkit-playsinline','');
+  video.setAttribute('muted','');
 
   try{
-    // Fallback-Kette: Rückkamera → beliebige Kamera
-    const constraints=[
+    // Kamera-Constraints: Fallback-Kette
+    let stream=null;
+    const camOptions=[
       {video:{facingMode:{ideal:'environment'}}},
       {video:{facingMode:'environment'}},
       {video:true}
     ];
-    let stream=null;
-    for(const c of constraints){
-      try{stream=await navigator.mediaDevices.getUserMedia(c);break;}
+    for(const opt of camOptions){
+      try{stream=await navigator.mediaDevices.getUserMedia(opt);break;}
       catch(e){
         if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError')throw e;
-        // nächste Constraint versuchen
       }
     }
-    if(!stream)throw new Error('Keine Kamera gefunden');
+    if(!stream)throw new DOMException('NotFoundError','no camera');
     scanStream=stream;
-
-    // Kamera-API verfügbar?
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)
-      throw new Error('Kamera-API nicht verfügbar (HTTPS erforderlich)');
-
     video.srcObject=stream;
 
-    // iOS-Fix: play() ZUERST aufrufen, dann auf canplay warten
-    // (anders als Desktop: iOS startet Laden erst mit play())
-    const playPromise=video.play();
-    await new Promise((resolve,reject)=>{
-      const timeout=setTimeout(()=>reject(new Error('Timeout')),10000);
-      const done=()=>{clearTimeout(timeout);resolve();};
-      if(video.readyState>=2){done();return;}
-      video.addEventListener('canplay',done,{once:true});
-      video.addEventListener('loadeddata',done,{once:true});
-      if(playPromise)playPromise.catch(e=>{clearTimeout(timeout);reject(e);});
-    });
+    // play() direkt aufrufen — kein Event-Waiting (iOS-kompatibel)
+    try{
+      await video.play();
+      hint.textContent='QR-Code im Rahmen halten';
+      startScanLoop(video,canvas,ctx);
+    }catch(playErr){
+      // Autoplay blockiert (z.B. iOS erfordert User-Tap) → Tap-Button anzeigen
+      hint.textContent='Tippe zum Starten';
+      showTapToPlay(video,canvas,ctx);
+    }
 
-    hint.textContent='QR-Code im Rahmen halten';
-
-    const loop=()=>{
-      if(!scanStream)return;
-      // videoWidth===0 abfangen (passiert auf iOS kurz nach play())
-      if(video.readyState>=2&&video.videoWidth>0&&video.videoHeight>0){
-        canvas.width=video.videoWidth;
-        canvas.height=video.videoHeight;
-        ctx.drawImage(video,0,0,canvas.width,canvas.height);
-        const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
-        const code=jsQR(imageData.data,imageData.width,imageData.height,{inversionAttempts:'dontInvert'});
-        if(code&&code.data){stopScan();setAuftrag(code.data);return;}
-      }
-      scanLoop=requestAnimationFrame(loop);
-    };
-    scanLoop=requestAnimationFrame(loop);
   }catch(e){
     scanArea.style.display='none';
     hint.textContent='';
@@ -601,12 +593,47 @@ async function startScan(){
     document.getElementById('camera-error-title').textContent=
       isDenied?'Kamerazugriff verweigert':
       notFound?'Keine Kamera gefunden':
-      'Kamera nicht verfügbar';
+      'Kamera nicht verfügbar ('+e.name+')';
     document.getElementById('camera-error-desc').textContent=isDenied
-      ?'Die App benötigt Kamerazugriff zum Scannen von QR-Codes. Bitte erlaube den Zugriff in den Browser-Einstellungen.'
-      :'Kein Kamera-Gerät gefunden. Bitte wechsle auf "Einfügen" oder "Eingabe".';
+      ?'Bitte erlaube den Kamerazugriff in den Einstellungen, dann Seite neu laden.'
+      :'Kein Kamera-Gerät gefunden. Bitte "Einfügen" oder "Eingabe" verwenden.';
     errorCard.classList.add('visible');
   }
+}
+
+function showTapToPlay(video,canvas,ctx){
+  const scanArea=document.getElementById('scan-area');
+  const btn=document.createElement('button');
+  btn.className='tap-to-play-btn';
+  btn.textContent='▶ Kamera starten';
+  btn.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.75);color:#fff;border:2px solid rgba(255,255,255,0.8);border-radius:14px;padding:16px 28px;font-size:16px;font-weight:700;cursor:pointer;z-index:10;white-space:nowrap';
+  btn.addEventListener('click',async()=>{
+    btn.remove();
+    try{
+      await video.play();
+      document.getElementById('scan-hint').textContent='QR-Code im Rahmen halten';
+      startScanLoop(video,canvas,ctx);
+    }catch(e){
+      document.getElementById('scan-hint').textContent='Kamera konnte nicht gestartet werden';
+    }
+  });
+  scanArea.appendChild(btn);
+}
+
+function startScanLoop(video,canvas,ctx){
+  const loop=()=>{
+    if(!scanStream)return;
+    if(video.readyState>=2&&video.videoWidth>0&&video.videoHeight>0){
+      canvas.width=video.videoWidth;
+      canvas.height=video.videoHeight;
+      ctx.drawImage(video,0,0,canvas.width,canvas.height);
+      const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const code=jsQR(imageData.data,imageData.width,imageData.height,{inversionAttempts:'dontInvert'});
+      if(code&&code.data){stopScan();setAuftrag(code.data);return;}
+    }
+    scanLoop=requestAnimationFrame(loop);
+  };
+  scanLoop=requestAnimationFrame(loop);
 }
 
 function stopScan(){
