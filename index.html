@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>BS·pic·upload</title>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" defer crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 /* ── FOCUS STATES (WCAG AA) ── */
@@ -393,7 +393,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 
 </main><!-- /#app-main -->
 <div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
-<div class="version-badge">v1.3.0</div>
+<div class="version-badge">v1.3.1</div>
 <script>
 const CLIENT_ID='180e1fc6-2c2b-4a77-82e8-e3dbcd219491';
 const TENANT_ID='175d1508-8739-4676-bb66-98aa62745feb';
@@ -527,10 +527,8 @@ async function startScan(){
   errorCard.classList.remove('visible');
   scanArea.classList.remove('hidden');
   hint.textContent='Kamera wird gestartet…';
-  // alten Tap-Button entfernen falls vorhanden
   const old=scanArea.querySelector('.tap-to-play-btn');if(old)old.remove();
 
-  // jsQR laden
   if(typeof jsQR==='undefined'){
     hint.textContent='Scanner wird geladen…';
     const loaded=await ensureJsQR();
@@ -545,7 +543,6 @@ async function startScan(){
   }
   document.getElementById('btn-camera-settings').style.display='';
 
-  // Kamera-API vorhanden?
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
     hint.textContent='';
     document.getElementById('camera-error-title').textContent='Kamera nicht unterstützt';
@@ -558,8 +555,6 @@ async function startScan(){
   const video=document.getElementById('scan-video');
   const canvas=document.getElementById('scan-canvas');
   const ctx=canvas.getContext('2d');
-
-  // Alle iOS-Pflicht-Attribute als Eigenschaft UND Attribut setzen
   video.muted=true;
   video.playsInline=true;
   video.setAttribute('playsinline','');
@@ -567,7 +562,6 @@ async function startScan(){
   video.setAttribute('muted','');
 
   try{
-    // Kamera-Constraints: Fallback-Kette
     let stream=null;
     const camOptions=[
       {video:{facingMode:{ideal:'environment'}}},
@@ -576,25 +570,19 @@ async function startScan(){
     ];
     for(const opt of camOptions){
       try{stream=await navigator.mediaDevices.getUserMedia(opt);break;}
-      catch(e){
-        if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError')throw e;
-      }
+      catch(e){if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError')throw e;}
     }
     if(!stream)throw new DOMException('NotFoundError','no camera');
     scanStream=stream;
     video.srcObject=stream;
-
-    // play() direkt aufrufen — kein Event-Waiting (iOS-kompatibel)
     try{
       await video.play();
       hint.textContent='QR-Code im Rahmen halten';
       startScanLoop(video,canvas,ctx);
     }catch(playErr){
-      // Autoplay blockiert (z.B. iOS erfordert User-Tap) → Tap-Button anzeigen
       hint.textContent='Tippe zum Starten';
       showTapToPlay(video,canvas,ctx);
     }
-
   }catch(e){
     scanArea.classList.add('hidden');
     hint.textContent='';
@@ -623,9 +611,7 @@ function showTapToPlay(video,canvas,ctx){
       await video.play();
       document.getElementById('scan-hint').textContent='QR-Code im Rahmen halten';
       startScanLoop(video,canvas,ctx);
-    }catch(e){
-      document.getElementById('scan-hint').textContent='Kamera konnte nicht gestartet werden';
-    }
+    }catch(e){document.getElementById('scan-hint').textContent='Kamera konnte nicht gestartet werden';}
   });
   scanArea.appendChild(btn);
 }
@@ -634,8 +620,7 @@ function startScanLoop(video,canvas,ctx){
   const loop=()=>{
     if(!scanStream)return;
     if(video.readyState>=2&&video.videoWidth>0&&video.videoHeight>0){
-      canvas.width=video.videoWidth;
-      canvas.height=video.videoHeight;
+      canvas.width=video.videoWidth;canvas.height=video.videoHeight;
       ctx.drawImage(video,0,0,canvas.width,canvas.height);
       const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
       const code=jsQR(imageData.data,imageData.width,imageData.height,{inversionAttempts:'dontInvert'});
@@ -655,13 +640,9 @@ function openCameraSettings(){
   const isIosSafari=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
   const isAndroid=/Android/.test(navigator.userAgent);
   let msg='';
-  if(isIosSafari){
-    msg='iOS: Einstellungen → Safari → Kamera → Erlauben, dann Seite neu laden.';
-  }else if(isAndroid){
-    msg='Android: Adressleiste antippen → 🔒 Symbol → Berechtigungen → Kamera erlauben.';
-  }else{
-    msg='Browser-Adressleiste: 🔒 Symbol → Kamera → Erlauben, dann Seite neu laden.';
-  }
+  if(isIosSafari){msg='iOS: Einstellungen → Safari → Kamera → Erlauben, dann Seite neu laden.';}
+  else if(isAndroid){msg='Android: Adressleiste antippen → 🔒 Symbol → Berechtigungen → Kamera erlauben.';}
+  else{msg='Browser-Adressleiste: 🔒 Symbol → Kamera → Erlauben, dann Seite neu laden.';}
   showToast(msg,'error');
 }
 
@@ -674,10 +655,7 @@ function onPasteEvent(){
     else if(v.length>0)showToast('Auftragsnummer muss genau '+AUFTRAG_LENGTH+' Stellen haben (aktuell: '+v.length+')','error');
   },50);
 }
-function onTextInput(val){
-  const v=val.trim();
-  if(v.length===AUFTRAG_LENGTH)setAuftrag(v);
-}
+function onTextInput(val){const v=val.trim();if(v.length===AUFTRAG_LENGTH)setAuftrag(v);}
 async function pasteFromClipboard(){
   try{
     const text=await navigator.clipboard.readText();
@@ -692,16 +670,15 @@ async function pasteFromClipboard(){
 // ── NUMPAD ──
 let numpadExpanded=true;
 function numpadKey(k){
-  if(numpadVal.length>=AUFTRAG_LENGTH)return; // max 7 Stellen
+  if(numpadVal.length>=AUFTRAG_LENGTH)return;
   numpadVal+=k;
   updateNumpadDisplay();
   const ok=numpadVal.length===AUFTRAG_LENGTH;
   document.getElementById('btn-numpad-confirm').disabled=!ok;
-  if(ok)setAuftrag(numpadVal); // auto-bestätigen bei 7 Stellen
+  if(ok)setAuftrag(numpadVal);
 }
 function numpadBack(){
-  numpadVal=numpadVal.slice(0,-1);
-  updateNumpadDisplay();
+  numpadVal=numpadVal.slice(0,-1);updateNumpadDisplay();
   document.getElementById('btn-numpad-confirm').disabled=numpadVal.length!==AUFTRAG_LENGTH;
   if(numpadVal.length===0)expandNumpad();
 }
@@ -710,15 +687,10 @@ function updateNumpadDisplay(){
   const el=document.getElementById('numpad-display');
   const counter=document.getElementById('numpad-counter');
   if(numpadVal){
-    el.textContent=numpadVal;
-    el.classList.remove('placeholder');
-    if(counter){
-      counter.textContent=numpadVal.length+' / '+AUFTRAG_LENGTH;
-      counter.style.color=numpadVal.length===AUFTRAG_LENGTH?'#7FBA00':'var(--muted)';
-    }
+    el.textContent=numpadVal;el.classList.remove('placeholder');
+    if(counter){counter.textContent=numpadVal.length+' / '+AUFTRAG_LENGTH;counter.style.color=numpadVal.length===AUFTRAG_LENGTH?'#7FBA00':'var(--muted)';}
   }else{
-    el.textContent='Nummer eingeben…';
-    el.classList.add('placeholder');
+    el.textContent='Nummer eingeben…';el.classList.add('placeholder');
     if(counter){counter.textContent='0 / '+AUFTRAG_LENGTH;counter.style.color='var(--muted)';}
   }
 }
@@ -781,9 +753,7 @@ function addPhotos(input){
       if(!warnedLimit){showToast('Mehr als '+MAX_PHOTOS+' Fotos — Upload kann sehr lange dauern','error');warnedLimit=true;}
       return;
     }
-    if(file.size>MAX_FILE_MB*1024*1024){
-      showToast('"'+file.name+'" ist größer als '+MAX_FILE_MB+' MB','error');
-    }
+    if(file.size>MAX_FILE_MB*1024*1024){showToast('"'+file.name+'" ist größer als '+MAX_FILE_MB+' MB','error');}
     const reader=new FileReader();
     reader.onload=e=>{photos.push({file,dataUrl:e.target.result});renderPhotoGrid();};
     reader.readAsDataURL(file);
@@ -805,11 +775,11 @@ function renderPhotoGrid(){
   });
   const n=photos.length;
   const word=n===1?'Foto':'Fotos';
-  document.getElementById('photo-count-text').innerHTML=`<span id="photo-count-val">${n}</span> ${word} ausgewählt`;
+  document.getElementById('photo-count-text').innerHTML='<span id="photo-count-val">'+n+'</span> '+word+' ausgewählt';
   document.getElementById('btn-upload').disabled=n===0;
 }
 
-// ── UPLOAD with AbortController ──
+// ── UPLOAD ──
 let uploadAbortController=null;
 
 async function startUpload(){
@@ -818,24 +788,85 @@ async function startUpload(){
   uploadAbortController=new AbortController();
   const token=await getToken();
   if(!token){showToast('Nicht angemeldet','error');showScreen('login');return;}
-  const folderPath=`${BASE_FOLDER}/${auftragNummer}`;
+  const folderPath=BASE_FOLDER+'/'+auftragNummer;
   const total=photos.length;let done=0;
   const bar=document.getElementById('upload-progress-bar'),label=document.getElementById('upload-progress-label');
-  document.getElementById('upload-desc').textContent=`Ordner: ${folderPath}`;
-  label.textContent=`0 von ${total}`;
+  document.getElementById('upload-desc').textContent='Ordner: '+folderPath;
+  label.textContent='0 von '+total;
   try{
     await ensureFolder(token,folderPath);
     for(let i=0;i<photos.length;i++){
       if(uploadAbortController.signal.aborted)throw new DOMException('Abgebrochen','AbortError');
       const p=photos[i];
       const ext=(p.file.name.split('.').pop()||'jpg').toLowerCase();
-      const fn=`foto_${String(i+1).padStart(3,'0')}_${Date.now()}.${ext}`;
+      const fn='foto_'+String(i+1).padStart(3,'0')+'_'+Date.now()+'.'+ext;
       await uploadFile(token,folderPath,fn,p.file,uploadAbortController.signal);
       done++;
       bar.style.width=Math.round((done/total)*100)+'%';
-      label.textContent=`${done} von ${total}`;
+      label.textContent=done+' von '+total;
     }
     const photoWord=total===1?'Foto':'Fotos';
-    document.getElementById('success-path').textContent=`OneDrive / ${folderPath}`;
-    document.getElementById('success-count').textContent=`${total} ${photoWord} hochgeladen`;
-    
+    document.getElementById('success-path').textContent='OneDrive / '+folderPath;
+    document.getElementById('success-count').textContent=total+' '+photoWord+' hochgeladen';
+    navigate('success');
+  }catch(e){
+    if(e.name==='AbortError'){showToast('Upload abgebrochen','error');navigate('photos');}
+    else{showToast('Upload fehlgeschlagen: '+(e.message||'Fehler'),'error');navigate('photos');}
+  }finally{uploadAbortController=null;}
+}
+
+function cancelUpload(){if(uploadAbortController)uploadAbortController.abort();}
+
+async function ensureFolder(token,path){
+  const parts=path.split('/');let current='';
+  for(const part of parts){
+    current=current?current+'/'+part:part;
+    const check=await fetch('https://graph.microsoft.com/v1.0/me/drive/root:/'+current,{headers:{Authorization:'Bearer '+token}});
+    if(check.status===404){
+      const pp=current.split('/');pp.pop();
+      const parentPath=pp.length?'root:/'+pp.join('/')+':/children':'root/children';
+      await fetch('https://graph.microsoft.com/v1.0/me/drive/'+parentPath,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({name:part,folder:{},['@microsoft.graph.conflictBehavior']:'rename'})});
+    }
+  }
+}
+
+async function uploadFile(token,folderPath,filename,file,signal){
+  const url='https://graph.microsoft.com/v1.0/me/drive/root:/'+folderPath+'/'+filename+':/content';
+  const resp=await fetch(url,{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':file.type||'image/jpeg'},body:file,signal});
+  if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error((err.error&&err.error.message)||resp.statusText);}
+}
+
+function resetApp(){
+  auftragNummer=null;photos=[];numpadVal='';
+  document.getElementById('result-box').classList.remove('visible');
+  document.getElementById('btn-to-photos').disabled=true;
+  document.getElementById('paste-input').value='';
+  updateNumpadDisplay();renderPhotoGrid();
+  expandNumpad();
+  navHistory=['login','scan'];
+  startScan();
+  showScreen('scan');
+}
+
+// ── SERVICE WORKER ──
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('/bs-pic-upload/sw.js')
+      .catch(function(e){console.warn('SW registration failed:',e);});
+  });
+}
+
+// ── INIT ──
+(async function(){
+  if(window.location.search.indexOf('code=')!==-1){
+    const ok=await handleCallback();
+    if(ok){navHistory=['login','scan'];showScreen('scan');setupScanScreen();return;}
+  }
+  const token=await getToken();
+  if(token){navHistory=['login','scan'];showScreen('scan');setupScanScreen();}
+  else showScreen('login');
+})();
+function setupScanScreen(){startScan();}
+</script>
+</body>
+</html>
