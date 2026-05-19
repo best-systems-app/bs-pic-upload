@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="BS Upload">
 <meta name="theme-color" content="#0f0f0f">
 <title>BS·pic·upload</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 /* ── FOCUS STATES (WCAG AA) ── */
@@ -385,7 +385,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version-badge">v1.2.1</div>
+<div class="version-badge">v1.2.2</div>
 <script>
 const CLIENT_ID='180e1fc6-2c2b-4a77-82e8-e3dbcd219491';
 const TENANT_ID='175d1508-8739-4676-bb66-98aa62745feb';
@@ -488,6 +488,27 @@ function switchTab(tab){
   if(tab==='scan')startScan();
 }
 
+// ── JSQR LOADER mit Fallback-CDNs ──
+async function ensureJsQR(){
+  if(typeof jsQR!=='undefined')return true;
+  const srcs=[
+    'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js',
+    'https://unpkg.com/jsqr@1.4.0/dist/jsQR.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js'
+  ];
+  for(const src of srcs){
+    try{
+      await new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src=src;s.onload=res;s.onerror=rej;
+        document.head.appendChild(s);
+      });
+      if(typeof jsQR!=='undefined')return true;
+    }catch(e){}
+  }
+  return false;
+}
+
 // ── LIVE SCAN ──
 async function startScan(){
   const hint=document.getElementById('scan-hint');
@@ -498,15 +519,19 @@ async function startScan(){
   hint.textContent='Kamera wird gestartet…';
 
   if(typeof jsQR==='undefined'){
-    await new Promise(r=>setTimeout(r,1500));
-    if(typeof jsQR==='undefined'){
+    hint.textContent='Scanner wird geladen…';
+    const loaded=await ensureJsQR();
+    if(!loaded){
       scanArea.style.display='none';
+      hint.textContent='';
       document.getElementById('camera-error-title').textContent='Scanner nicht verfügbar';
-      document.getElementById('camera-error-desc').textContent='Bitte wechsle auf "Einfügen" oder "Eingabe".';
+      document.getElementById('camera-error-desc').textContent='Netzwerkfehler beim Laden. Bitte wechsle auf "Einfügen" oder "Eingabe".';
+      document.getElementById('btn-camera-settings').style.display='none';
       errorCard.classList.add('visible');
       return;
     }
   }
+  document.getElementById('btn-camera-settings').style.display='';
 
   const video=document.getElementById('scan-video');
   const canvas=document.getElementById('scan-canvas');
@@ -590,7 +615,17 @@ function stopScan(){
 }
 
 function openCameraSettings(){
-  showToast('Kamerazugriff in den Browser-Einstellungen erlauben','error');
+  const isIosSafari=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  const isAndroid=/Android/.test(navigator.userAgent);
+  let msg='';
+  if(isIosSafari){
+    msg='iOS: Einstellungen → Safari → Kamera → Erlauben, dann Seite neu laden.';
+  }else if(isAndroid){
+    msg='Android: Adressleiste antippen → 🔒 Symbol → Berechtigungen → Kamera erlauben.';
+  }else{
+    msg='Browser-Adressleiste: 🔒 Symbol → Kamera → Erlauben, dann Seite neu laden.';
+  }
+  showToast(msg,'error');
 }
 
 // ── PASTE ──
